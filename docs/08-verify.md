@@ -131,6 +131,12 @@ upgrade fails.
 
 Be honest with the install team about the limits.
 
+- **Per-image completeness of a push.** The gate checks the release
+  payload, the catalog image and the generated manifests — it would not
+  notice that one operator image failed to upload. That is enforced
+  upstream instead: `60-push-to-registry.sh` exits non-zero and names the
+  failures when oc-mirror reports a partial push. Do not treat a green gate
+  as evidence that a failed push was harmless.
 - **Operator installability.** That a catalog image is pullable does not
   prove every operator in it resolves its dependencies. Confirm with
   `oc get packagemanifests -n openshift-marketplace` once a cluster exists.

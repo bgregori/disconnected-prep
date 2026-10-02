@@ -51,6 +51,21 @@ actually care about.
 
 ---
 
+### Measured on a real delta
+
+Adding one operator (GitOps) to an existing 202-image mirror:
+
+| | Initial mirror | Delta |
+|---|---|---|
+| Archive | 29 GB | **9.1 GB** |
+| Mirror wall clock | 14m53s | 6m16s |
+| Transfer | binaries + repo + archive | archive only |
+
+9.1 GB is larger than "one operator" sounds, because the GitOps `latest`
+channel carries many bundle versions and the Argo CD images are sizeable.
+The saving is real but it is proportional to what actually changed — do not
+promise a customer that every delta is small.
+
 ## Connected bastion
 
 ### 1. Update the configuration

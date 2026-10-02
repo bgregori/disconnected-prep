@@ -17,9 +17,13 @@ require_cmds sha256sum
 SRC="${EXPORTS_DIR}/${EXPORT_TAG}"
 [[ -d "${SRC}" ]] || die "No export at ${SRC}. Run ./scripts/20-mirror-to-disk.sh first."
 
-# First transfer must also carry the tooling; later deltas need only archives.
+# The first transfer must also carry the tooling; later deltas need only the
+# archives. The marker lives alongside the prep tree, NOT inside the export
+# directory -- a per-export marker is never present in a new dated export,
+# so every delta would needlessly re-ship ~840 MB of binaries.
+BIN_MARKER="${PREP_ROOT}/.binaries-transferred"
 if [[ "${INCLUDE_BINARIES:-auto}" == "auto" ]]; then
-  if [[ -f "${SRC}/.binaries-included" ]]; then INCLUDE_BINARIES=false; else INCLUDE_BINARIES=true; fi
+  if [[ -f "${BIN_MARKER}" ]]; then INCLUDE_BINARIES=false; else INCLUDE_BINARIES=true; fi
 fi
 
 if [[ "${INCLUDE_BINARIES}" == "true" ]]; then
@@ -41,7 +45,11 @@ if [[ "${INCLUDE_BINARIES}" == "true" ]]; then
       --exclude='.git' \
       --exclude='config/prep.env' \
       -C "$(dirname "${REPO_ROOT}")" "$(basename "${REPO_ROOT}")"
-  : > "${SRC}/.binaries-included"
+  : > "${BIN_MARKER}"
+  info "Recorded ${BIN_MARKER}; later transfers will carry archives only."
+  info "  Delete it to force the tooling to be included again."
+else
+  info "Tooling already transferred previously -- shipping archives only."
 fi
 
 info "Generating checksum manifest"
