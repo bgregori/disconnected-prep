@@ -1,0 +1,64 @@
+# Summary: OpenShift Virtualization (CNV), guest boot sources, VirtIO drivers.
+#
+# READ THIS BEFORE MIRRORING -- it changes what the install side must do.
+#
+#   CDI does not honour IDMS/ITMS.
+#
+#   ImageDigestMirrorSet and ImageTagMirrorSet rewrite image references for
+#   CRI-O, which covers pods. The Containerized Data Importer resolves the
+#   literal URL string in a DataVolume or DataImportCron spec and never
+#   consults those rules. Mirroring the guest images below is therefore
+#   necessary but not sufficient: the install side must also point
+#   DataVolumes at the mirror registry explicitly, and disable the
+#   operator-managed boot source imports that would otherwise keep trying to
+#   reach the internet and failing.
+#
+#   The install-side counterpart is roughly:
+#     oc patch hyperconverged kubevirt-hyperconverged -n openshift-cnv \
+#       --type merge \
+#       -p '{"spec":{"featureGates":{"enableCommonBootImageImport":false}}}'
+#   followed by static DataVolumes whose names match the PVC names the
+#   DataSources expect.
+#
+#   CDI also needs to trust the mirror registry CA. A cluster-wide
+#   additionalTrustBundle is not automatically applied to CDI imports;
+#   DataVolumes generally need spec.source.registry.certConfigMap pointing
+#   at a ConfigMap holding rootCA.pem in the DataVolume's own namespace.
+#
+# Record this in the handoff notes. It is the single most common reason a
+# disconnected virtualization evaluation stalls on day one.
+
+# >>> operators
+    - catalog: registry.redhat.io/redhat/redhat-operator-index:v${OCP_MINOR}
+      packages:
+        - name: kubevirt-hyperconverged
+          channels:
+            - name: stable
+
+        # nmstate: required for anything beyond a single flat network --
+        # bridges, bonds, or VLANs carrying VM traffic.
+        - name: kubernetes-nmstate-operator
+          channels:
+            - name: stable
+# <<< operators
+
+# >>> additionalImages
+    # --- CNV diagnostics ---
+    - name: registry.redhat.io/container-native-virtualization/cnv-must-gather-rhel9:v${OCP_MINOR}
+
+    # --- Windows guest drivers ---
+    # Required to install Windows VMs. Easy to forget, and impossible to add
+    # later without another trip across the airgap.
+    - name: registry.redhat.io/container-native-virtualization/virtio-win:latest
+
+    # --- Guest boot sources ---
+    # Each rhel-guest-image is roughly 1 GB. Keep only what you will boot.
+    - name: registry.redhat.io/rhel9/rhel-guest-image:latest
+    - name: registry.redhat.io/rhel8/rhel-guest-image:latest
+    # - name: registry.redhat.io/rhel9/rhel-guest-image:9.4
+    # - name: registry.redhat.io/rhel8/rhel-guest-image:8.10.0
+    # - name: quay.io/containerdisks/centos-stream:9-latest
+    # - name: quay.io/containerdisks/centos-stream:8-latest
+    # - name: quay.io/containerdisks/centos:7-2009
+    # - name: quay.io/containerdisks/fedora:latest
+# <<< additionalImages

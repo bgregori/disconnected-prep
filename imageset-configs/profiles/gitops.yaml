@@ -1,0 +1,17 @@
+# Summary: OpenShift GitOps (Argo CD) for declarative cluster configuration.
+#
+# Useful in disconnected environments because it makes cluster state
+# reproducible from a Git repository, which matters when rebuilding a cluster
+# is a multi-day airgap exercise rather than a terraform apply.
+#
+# Requires a Git server reachable from the cluster. In a full airgap that
+# means an internal GitLab/Gitea/Bitbucket -- Argo CD cannot reach github.com.
+# Confirm one exists before mirroring this.
+
+# >>> operators
+    - catalog: registry.redhat.io/redhat/redhat-operator-index:v${OCP_MINOR}
+      packages:
+        - name: openshift-gitops-operator
+          channels:
+            - name: latest
+# <<< operators

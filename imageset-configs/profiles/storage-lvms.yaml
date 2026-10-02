@@ -1,0 +1,20 @@
+# Summary: LVM Storage (LVMS/TopolVM) -- local-disk storage for single-node or edge.
+#
+# LVMS thin-provisions a local block device into a StorageClass. It is the
+# usual choice for single-node clusters and edge sites, where there is no
+# external storage array and no second node to replicate to.
+#
+# It is local storage: no replication, no cross-node attach, and a node loss
+# is a data loss. For multi-node clusters with availability requirements,
+# use ODF (profile: storage-odf) instead.
+#
+# Note the channel: unlike most operators here, LVMS tracks the OpenShift
+# version rather than a generic `stable`.
+
+# >>> operators
+    - catalog: registry.redhat.io/redhat/redhat-operator-index:v${OCP_MINOR}
+      packages:
+        - name: lvms-operator
+          channels:
+            - name: stable-${OCP_MINOR}
+# <<< operators

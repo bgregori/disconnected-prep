@@ -1,0 +1,25 @@
+# Summary: OADP (Velero) -- backup, restore, and VM snapshot export.
+#
+# OADP needs an S3-compatible object store as a backup target. In a
+# disconnected environment that store must also be disconnected -- typically
+# MinIO, Ceph RGW, or an existing on-prem object store.
+#
+# Mirroring the operator does not give you a backup target. Confirm one
+# exists and is reachable from the cluster before promising backups, and
+# record its endpoint in the handoff notes.
+#
+# The package is `redhat-oadp-operator`, not `oadp-operator` -- the bundles
+# inside it are named oadp-operator.vX.Y.Z, which misleads a lot of guides
+# (including the one this repo was derived from). Verified against the
+# v4.21 catalog: the only channel is `stable`.
+#
+# Confirm for your own catalog version before mirroring:
+#   ./scripts/13-catalog.sh redhat-oadp-operator
+
+# >>> operators
+    - catalog: registry.redhat.io/redhat/redhat-operator-index:v${OCP_MINOR}
+      packages:
+        - name: redhat-oadp-operator
+          channels:
+            - name: stable
+# <<< operators

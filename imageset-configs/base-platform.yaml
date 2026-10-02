@@ -1,0 +1,45 @@
+# Summary: OpenShift platform payload only. Always included.
+#
+# This is the minimum for a disconnected install: one pinned release version
+# and nothing else. Everything beyond this comes from a profile.
+#
+# Fragments are assembled by scripts/12-compose-imageset.sh using the
+# >>> / <<< section markers below. Each section is emitted into the matching
+# key of the generated ImageSetConfiguration.
+
+# >>> header
+kind: ImageSetConfiguration
+apiVersion: mirror.openshift.io/v2alpha1
+
+# Split archives to fit the transport medium, in GB. Remove to accept the
+# 500 GB default. Pair with --strict-archive if the medium has a hard limit.
+archiveSize: 100
+# <<< header
+
+# >>> platform
+    architectures:
+      - "${OCP_ARCH}"
+
+    channels:
+      # minVersion == maxVersion pins to a single z-stream. A range mirrors
+      # every release between the two, which multiplies the payload for no
+      # benefit unless you are deliberately staging an upgrade path.
+      - name: ${OCP_CHANNEL}
+        type: ocp
+        minVersion: ${OCP_VERSION}
+        maxVersion: ${OCP_VERSION}
+
+    # Mirror the Cincinnati update graph. Set true only if you intend to run
+    # the OpenShift Update Service in the disconnected environment; it adds a
+    # graph-data image and generates updateService.yaml. Day-2 z-stream
+    # upgrades via `oc adm upgrade --to-image` do NOT require this.
+    graph: false
+# <<< platform
+
+# >>> additionalImages
+    # Diagnostics. Mirror these now -- you cannot fetch them later when
+    # something is broken, which is exactly when you will want them.
+    - name: registry.redhat.io/rhel9/support-tools:latest
+    - name: registry.redhat.io/openshift4/ose-must-gather:latest
+    - name: registry.redhat.io/ubi9/ubi:latest
+# <<< additionalImages

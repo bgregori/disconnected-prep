@@ -1,0 +1,30 @@
+# Summary: Compliance Operator (DISA-STIG scanning) + File Integrity Operator (AIDE).
+#
+# These two cover the automated side of a STIG posture:
+#   - Compliance Operator runs OpenSCAP scans against the ocp4-stig and
+#     rhcos4-stig profiles and can auto-remediate via MachineConfig.
+#   - File Integrity Operator runs AIDE on each node and reports drift.
+#
+# Install-side warning worth carrying into the handoff notes:
+#
+#   The `default-auto-apply` ScanSetting applies remediations automatically,
+#   and many STIG remediations are MachineConfigs. Each one triggers a node
+#   reboot. On a single-node cluster that is a full API outage, and several
+#   remediations applied in sequence means repeated outages over an hour or
+#   more. For a first install, bind to `default` (scan only), review what it
+#   found, then decide what to apply.
+#
+# No additional images are needed; both operators carry their content in
+# their bundles.
+
+# >>> operators
+    - catalog: registry.redhat.io/redhat/redhat-operator-index:v${OCP_MINOR}
+      packages:
+        - name: compliance-operator
+          channels:
+            - name: stable
+
+        - name: file-integrity-operator
+          channels:
+            - name: stable
+# <<< operators

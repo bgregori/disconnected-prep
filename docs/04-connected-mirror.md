@@ -1,0 +1,174 @@
+# Mirror to disk
+
+On the **connected** bastion. Pulls everything in the ImageSetConfiguration
+into tar archives.
+
+```sh
+./scripts/10-fetch-binaries.sh
+ROLE=connected ./scripts/00-preflight.sh
+./scripts/20-mirror-to-disk.sh
+```
+
+---
+
+## Download the tooling
+
+```sh
+mkdir -p ~/ocp-airgap/{binaries,config,cache,mirror-out,exports}
+cd ~/ocp-airgap/binaries
+
+base=https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable-4.21
+
+curl -fLO ${base}/openshift-client-linux.tar.gz
+curl -fLO ${base}/oc-mirror.rhel9.tar.gz
+curl -fLO https://developers.redhat.com/content-gateway/file/pub/openshift-v4/clients/mirror-registry/1.3.9/mirror-registry.tar.gz
+```
+
+Pull `oc-mirror` from the **same channel as your payload**, not from
+`clients/ocp/latest`. A newer `oc-mirror` can write archive metadata that
+the version-matched tooling on the other side does not expect.
+
+```sh
+sudo tar -xzf openshift-client-linux.tar.gz -C /usr/local/bin oc
+sudo tar -xzf oc-mirror.rhel9.tar.gz -C /usr/local/bin oc-mirror
+sudo chown root:root /usr/local/bin/oc /usr/local/bin/oc-mirror
+sudo chmod 0755 /usr/local/bin/oc /usr/local/bin/oc-mirror
+```
+
+> ⚠️ **STIG** On a hardened host these binaries will not execute yet.
+> Relabel for SELinux, then add to the fapolicyd allowlist:
+> ```sh
+> sudo restorecon -v /usr/local/bin/oc /usr/local/bin/oc-mirror
+> sudo fapolicyd-cli --file add /usr/local/bin/oc
+> sudo fapolicyd-cli --file add /usr/local/bin/oc-mirror
+> sudo fapolicyd-cli --update
+> ```
+> Order matters — relabelling changes the file, so trust it afterwards.
+> See [02-fips-stig-rhel9.md](02-fips-stig-rhel9.md).
+
+Place the Red Hat pull secret at `~/ocp-airgap/binaries/pull-secret.json`
+and `chmod 600` it.
+
+---
+
+## Survive a dropped session
+
+A full mirror runs for hours. An SSH disconnect kills it and you start over.
+
+```sh
+sudo loginctl enable-linger $USER
+systemd-run --scope --user tmux new -s mirror
+```
+
+Detach with `Ctrl-b d`, reattach with `tmux attach -t mirror`.
+
+The `systemd-run --scope` wrapper matters: a bare `tmux new` still belongs
+to your login session scope and dies with it.
+
+---
+
+## Run the mirror
+
+```sh
+cd ~/ocp-airgap
+
+umask 0022
+oc-mirror --v2 \
+  --config config/imageset-config.yaml \
+  --cache-dir ./cache \
+  --authfile binaries/pull-secret.json \
+  file://./mirror-out
+```
+
+> ⚠️ **STIG** The `umask 0022` is required, not cosmetic. At the STIG default
+> of `0077`, `oc-mirror` warns `Detected bad umask 0077 (oc-mirror requires a
+> umask of 0022)` and writes cache and archive content other accounts cannot
+> read. This applies to the connected side too, not only the registry push.
+
+This is **mirror-to-disk (m2d)**. The workflow is selected by argument
+shape, not by a flag:
+
+| Destination | `--from` | `--workspace` | Workflow |
+|---|---|---|---|
+| `file://` | — | — | **mirror-to-disk** |
+| `docker://` | `file://` | — | disk-to-mirror |
+| `docker://` | — | `file://` | mirror-to-mirror |
+
+> **`--workspace` is for mirror-to-mirror only.** Combining it with a
+> `file://` destination is an error, not a refinement. If you have seen a
+> guide that passes both, it is wrong — and it will have been masking the
+> fact that m2d keeps its state at the destination instead.
+
+---
+
+## Use the same output directory every time
+
+This is the part guides most often get backwards.
+
+`oc-mirror` tracks what it has already mirrored in a history file under
+`<destination>/working-dir/.history/`. On a second run against the **same**
+destination it emits only new blobs — that is what makes Day-2 updates
+cheap.
+
+Point it at a fresh dated directory each run and there is no history, so
+every run produces a **full** archive.
+
+So: one persistent `MIRROR_OUT`, and dated copies staged out of it for
+transport.
+
+```
+~/ocp-airgap/
+├── cache/                    PERSISTENT  layer cache (--cache-dir)
+├── mirror-out/               PERSISTENT  m2d destination; history lives here
+│   ├── mirror_000001.tar                 current run's archives
+│   └── working-dir/
+│       ├── .history/                     ← the thing that enables deltas
+│       └── logs/
+└── exports/                              dated copies for transport
+    ├── 2026-10-02_initial/
+    └── 2026-12-01_day2/
+```
+
+> ⚠️ **`oc-mirror` deletes existing `mirror_*.tar` from the destination
+> before each run.** That is why `20-mirror-to-disk.sh` copies archives out
+> to `exports/<tag>/` immediately afterwards. If you need an archive, copy
+> it before re-running.
+
+---
+
+## While it runs
+
+Logs stream to the terminal and to
+`mirror-out/working-dir/logs/oc-mirror-<timestamp>.log`.
+
+```sh
+du -sh ~/ocp-airgap/cache ~/ocp-airgap/mirror-out
+tail -f ~/ocp-airgap/mirror-out/working-dir/logs/oc-mirror-*.log
+```
+
+If the upstream registry throttles, reduce parallelism:
+
+```sh
+--parallel-images 2 --parallel-layers 2
+```
+
+An interrupted run is resumable — re-run the same command and the cache is
+reused. You do not need to start clean.
+
+---
+
+## Stage for transfer
+
+```sh
+mkdir -p exports/2026-10-02_initial
+cp mirror-out/mirror_*.tar exports/2026-10-02_initial/
+cp config/imageset-config.yaml exports/2026-10-02_initial/
+```
+
+Carrying the ImageSetConfiguration alongside the archives matters: the
+disk-to-mirror step requires `--config`, and it is also your only record of
+what this bundle contains.
+
+---
+
+Next: [05-transfer.md](05-transfer.md)

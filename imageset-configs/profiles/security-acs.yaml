@@ -1,0 +1,22 @@
+# Summary: Red Hat Advanced Cluster Security (RHACS / StackRox).
+#
+# Container runtime security, vulnerability management, and policy
+# enforcement. Frequently required alongside STIG scanning in accredited
+# environments, where the Compliance Operator covers host and cluster
+# configuration and ACS covers workloads.
+#
+# Disconnected caveat: ACS vulnerability data comes from a definitions feed
+# that is normally fetched from the internet. In an airgapped install you
+# must periodically import an offline vulnerability bundle, or the scanner
+# runs against stale data and quietly under-reports.
+#
+# That bundle is a separate download from the mirroring done here. Plan a
+# recurring process for it and record it in the handoff notes.
+
+# >>> operators
+    - catalog: registry.redhat.io/redhat/redhat-operator-index:v${OCP_MINOR}
+      packages:
+        - name: rhacs-operator
+          channels:
+            - name: stable
+# <<< operators

@@ -1,0 +1,20 @@
+# Local configuration -- contains environment specifics and a registry password
+config/prep.env
+
+# Credentials. Must never be committed.
+*pull-secret*.json
+*.pem
+*.key
+auth.json
+
+# Generated artifacts
+*.tar
+*.tar.gz
+mirror_*.tar
+working-dir/
+SHA256SUMS
+
+# Editor noise
+.DS_Store
+*.swp
+*~
