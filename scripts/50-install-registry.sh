@@ -28,7 +28,7 @@ if command -v podman >/dev/null 2>&1; then
   GRAPH_ROOT="$(podman info --format '{{.Store.GraphRoot}}' 2>/dev/null || true)"
   if [[ -n "${GRAPH_ROOT}" ]]; then
     info "Quay images will be stored under: ${GRAPH_ROOT}"
-    require_space "${GRAPH_ROOT}" "${MIN_QUAY_GB:-500}"
+    require_space "${GRAPH_ROOT}" "${MIN_QUAY_GB:-200}"
   fi
 fi
 require_space "${QUAY_ROOT}" "${MIN_QUAYROOT_GB:-1}"

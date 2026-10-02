@@ -84,8 +84,8 @@ fi
 # --- disk ------------------------------------------------------------------
 
 if [[ "${ROLE}" == "connected" ]]; then
-  check require_space "${CACHE_DIR}"  "${MIN_CACHE_GB:-400}"
-  check require_space "${MIRROR_OUT}" "${MIN_OUTPUT_GB:-300}"
+  check require_space "${CACHE_DIR}"  "${MIN_CACHE_GB:-150}"
+  check require_space "${MIRROR_OUT}" "${MIN_OUTPUT_GB:-150}"
   # Only a problem when /home is actually a separate (and usually small)
   # filesystem, which is a common but not universal STIG layout.
   cache_mnt=$(df -P "$(dirname "${CACHE_DIR}")" 2>/dev/null | tail -1 | awk '{print $NF}')
@@ -100,7 +100,7 @@ else
     graph_root=$(podman info --format '{{.Store.GraphRoot}}' 2>/dev/null)
     if [[ -n "${graph_root}" ]]; then
       info "podman storage root: ${graph_root}  <- Quay images land here"
-      check require_space "${graph_root}" "${MIN_QUAY_GB:-500}"
+      check require_space "${graph_root}" "${MIN_QUAY_GB:-200}"
       graph_mnt=$(df -P "${graph_root}" 2>/dev/null | tail -1 | awk '{print $NF}')
       if [[ "${graph_mnt}" == "/" ]]; then
         warn "Quay images will be written to the ROOT filesystem (${graph_mnt})."
@@ -114,8 +114,8 @@ else
   fi
   # quayRoot needs to exist and be durable, but only needs megabytes.
   check require_space "${QUAY_ROOT}"   "${MIN_QUAYROOT_GB:-1}"
-  check require_space "${IMPORTS_DIR}" "${MIN_IMPORT_GB:-300}"
-  check require_space "${CACHE_DIR}"   "${MIN_CACHE_GB:-200}"
+  check require_space "${IMPORTS_DIR}" "${MIN_IMPORT_GB:-100}"
+  check require_space "${CACHE_DIR}"   "${MIN_CACHE_GB:-150}"
 fi
 
 # --- credentials -----------------------------------------------------------

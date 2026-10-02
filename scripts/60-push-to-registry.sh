@@ -53,7 +53,7 @@ else
   warn "No SHA256SUMS in ${FROM_DIR} -- skipping integrity check."
 fi
 
-require_space "${CACHE_DIR}" "${MIN_CACHE_GB:-200}"
+require_space "${CACHE_DIR}" "${MIN_CACHE_GB:-150}"
 run mkdir -p "${CACHE_DIR}"
 
 extra=()
