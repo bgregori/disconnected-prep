@@ -92,13 +92,28 @@ part of this for a production build.
 
 ## Documentation conventions
 
-Docs are the source of truth. Scripts are readable transcriptions of them —
-no hidden logic, every command echoed before it runs, so the terminal
-transcript doubles as evidence of what was executed. You can work entirely
-from the docs and never run a script; the result is identical.
+**The docs are self-contained. You do not need this repository to use it.**
+
+That is deliberate: in many environments the repo cannot be carried into
+the enclave, and the person doing the work is typing commands by hand from
+a printed or PDF copy. Every chapter therefore shows the real commands,
+with the variables written out. Where a chapter offers a script, it also
+shows what that script runs, under a **"By hand"** heading. Following the
+docs alone produces exactly the same result.
+
+Scripts are a convenience for repeat runs, not the product. They contain no
+hidden logic and echo every command before executing it, so the terminal
+transcript doubles as evidence of what was run — which matters when the
+build has to be justified for accreditation.
 
 Scripts are numbered to sort into execution order, with gaps for insertions.
-Odd-numbered scripts are optional (dry run, size estimate).
+Odd-numbered scripts are optional (dry run, size estimate, catalog queries).
+
+If you are working without the repo, the two chapters to read closely are
+[03 — plan your content](docs/03-plan-your-content.md), which includes a
+complete ImageSetConfiguration you can type, and
+[09 — handoff](docs/09-handoff.md), which shows how to build
+`imageDigestSources` from the generated IDMS without the helper script.
 
 Markers used throughout:
 

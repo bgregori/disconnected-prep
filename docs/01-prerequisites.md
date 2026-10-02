@@ -11,6 +11,45 @@ ROLE=connected    ./scripts/00-preflight.sh    # on the connected bastion
 ROLE=disconnected ./scripts/00-preflight.sh    # on the disconnected bastion
 ```
 
+### Checking by hand
+
+Without the repo, these are the checks that matter. Run them on both
+bastions before starting.
+
+```sh
+# --- OS and hardening posture ---
+cat /etc/redhat-release
+cat /proc/sys/crypto/fips_enabled           # 1 = bastion in FIPS mode
+getenforce                                  # expect Enforcing
+umask                                       # 0077 on a STIG build -- see docs/02
+systemctl is-active fapolicyd firewalld
+
+# --- tooling actually executes (fapolicyd blocks unlisted binaries) ---
+oc version --client
+( umask 0022; oc-mirror version --v2 >/dev/null && echo "oc-mirror OK" )
+
+# --- oc-mirror's local storage port must be free ---
+ss -ltn | grep -q ':55000 ' && echo "PORT 55000 IN USE" || echo "port 55000 free"
+
+# --- disk, on the filesystems that actually fill up ---
+df -h "$(dirname ~/ocp-airgap/cache)"       # cache
+df -h "$(dirname ~/ocp-airgap/mirror-out)"  # archives
+# disconnected host only -- where Quay really stores images:
+df -h "$(podman info --format '{{.Store.GraphRoot}}')"
+
+# --- credentials (connected host only) ---
+jq -e '.auths["registry.redhat.io"]' ~/ocp-airgap/binaries/pull-secret.json \
+  >/dev/null && echo "pull secret has registry.redhat.io"
+
+# --- upstream reachable (connected host only) ---
+for r in registry.redhat.io quay.io mirror.openshift.com; do
+  printf '%-24s %s\n' "$r" "$(curl -s -o /dev/null -w '%{http_code}' -m 10 https://$r/)"
+done
+
+# --- registry hostname must be fully qualified ---
+# oc-mirror parses an unqualified docker:// target as a repository name.
+```
+
 ---
 
 ## The two bastions
@@ -111,7 +150,9 @@ Three things worth internalising:
 Operator size varies enormously — the two compliance operators above added
 only a few GB, whereas virtualization with guest images adds hundreds. Rows
 beyond the measured one are estimates; get a real number for *your*
-configuration with `./scripts/25-estimate-size.sh` before provisioning.
+configuration with `./scripts/25-estimate-size.sh` before provisioning —
+or, without the repo, from the marginal costs in
+[11-capacity-planning.md](11-capacity-planning.md).
 
 > `/var/lib/containers` also grows during the push. On a STIG'd build `/var`
 > is frequently a separate, modest partition. Check it.

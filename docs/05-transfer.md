@@ -8,6 +8,32 @@ into the registry push, often the next day.
 ./scripts/30-package-transfer.sh
 ```
 
+### By hand
+
+```sh
+TAG=2026-10-02_initial
+SRC=~/ocp-airgap/exports/${TAG}
+
+# first transfer only: carry the tooling and these procedures too
+mkdir -p "${SRC}/binaries"
+cp ~/ocp-airgap/binaries/openshift-client-linux.tar.gz \
+   ~/ocp-airgap/binaries/oc-mirror.rhel9.tar.gz \
+   ~/ocp-airgap/binaries/mirror-registry.tar.gz "${SRC}/binaries/"
+
+# checksum everything -- do this before the media leaves the host
+cd "${SRC}"
+find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+
+# copy to the medium (no -z: the content is already compressed)
+cp -a "${SRC}" /path/to/removable/media/
+```
+
+On arrival:
+
+```sh
+cd ~/ocp-airgap/imports/${TAG} && sha256sum -c SHA256SUMS
+```
+
 ---
 
 ## Do not re-compress
@@ -55,6 +81,17 @@ exports/2026-10-02_initial/
 
 **Later transfers** — archives, the config, and checksums. The tooling is
 already there.
+
+`scripts/30-package-transfer.sh` decides between the two by looking for
+`${PREP_ROOT}/.binaries-transferred`, which it creates after the first
+transfer. Delete that file to force the tooling to be included again — for
+instance after upgrading `oc-mirror`, when the far side needs the matching
+binary. Working by hand, just copy `binaries/` the first time and omit it
+afterwards.
+
+> The marker deliberately lives beside the prep tree rather than inside the
+> export directory. A per-export marker is never present in a new dated
+> export, so every delta would re-ship the tooling — about 840 MB.
 
 > ⚠️ **STIG** Do not include the Red Hat pull secret. The disconnected side
 > authenticates only to the local Quay, with credentials generated there.

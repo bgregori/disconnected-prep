@@ -126,6 +126,19 @@ quick sanity check before moving on.
 
 It is resumable. Re-run the same command; already-pushed images are skipped.
 
+Re-running is not free, though: oc-mirror re-verifies the checksum (minutes
+for a large archive) and re-extracts the whole archive before it resumes.
+If the first attempt already verified the same files, skip the re-hash:
+
+```sh
+SKIP_CHECKSUM=true ./scripts/60-push-to-registry.sh
+```
+
+The script also records `.checksum-verified` in the import directory after
+a successful check and skips automatically on later runs; delete that file
+to force re-verification. Running oc-mirror by hand skips the check anyway,
+since it is this repo's addition rather than an oc-mirror feature.
+
 Common causes:
 
 | Error | Cause |

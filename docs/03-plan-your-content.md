@@ -60,6 +60,8 @@ operator is gigabytes; the cost of omitting one is a week.
 Do not guess package names or channels. A typo here surfaces hours into a
 mirror run, or worse, silently mirrors nothing for that entry.
 
+With this repo:
+
 ```sh
 ./scripts/13-catalog.sh --list              # every package in the catalog
 ./scripts/13-catalog.sh --list oadp         # ...filtered
@@ -67,8 +69,50 @@ mirror run, or worse, silently mirrors nothing for that entry.
 ./scripts/13-catalog.sh --check             # validate your config
 ```
 
-The script extracts the catalog's file-based catalog with `oc image
-extract` and caches it, so after the first run queries are instant.
+### By hand
+
+The script is a convenience wrapper; these are the commands it runs. Pull
+the catalog's file-based catalog down once, then query it locally.
+
+```sh
+CATALOG=registry.redhat.io/redhat/redhat-operator-index:v4.21
+PULL_SECRET=~/ocp-airgap/binaries/pull-secret.json
+
+mkdir -p ~/catalog
+oc image extract "${CATALOG}" \
+  --registry-config "${PULL_SECRET}" \
+  --filter-by-os linux/amd64 \
+  --path "/configs/:${HOME}/catalog" --confirm
+```
+
+> The **trailing slash** on `/configs/` is required. Without it the command
+> exits 0 and extracts nothing, which looks like an empty catalog.
+
+That gives one directory per package:
+
+```sh
+ls ~/catalog | wc -l                        # ~150 packages
+ls ~/catalog | grep -i oadp                 # find a package
+```
+
+Each `catalog.json` is a stream of JSON objects, which `jq` reads directly:
+
+```sh
+PKG=lvms-operator
+
+# the default channel
+jq -r 'select(.schema=="olm.package") | .defaultChannel' ~/catalog/${PKG}/catalog.json
+
+# every channel
+jq -r 'select(.schema=="olm.channel") | .name' ~/catalog/${PKG}/catalog.json | sort -u
+
+# bundle versions within one channel
+jq -r 'select(.schema=="olm.channel" and .name=="stable-4.21") | .entries[].name' \
+   ~/catalog/${PKG}/catalog.json
+```
+
+Use the **channel** name in your ImageSetConfiguration, not the bundle
+version.
 
 > **Why not `oc-mirror list operators`?** It is widely documented, and it
 > does not work here. `list`, `describe` and `init` exist only in
@@ -132,6 +176,66 @@ The generated file is yours. Hand-edit it freely; just remember re-running
 the composer overwrites it, so put changes you want to keep into
 `imageset-configs/`.
 
+### Writing it by hand
+
+You do not need the composer — it only concatenates fragments. A complete,
+working configuration is short. This is the one actually used for the
+validated run in [VALIDATION.md](../VALIDATION.md), with the operator list
+to edit:
+
+```yaml
+kind: ImageSetConfiguration
+apiVersion: mirror.openshift.io/v2alpha1
+
+# Split archives to fit your transport medium, in GB. Remove for the
+# 500 GB default.
+archiveSize: 100
+
+mirror:
+  platform:
+    architectures:
+      - "amd64"
+    channels:
+      # minVersion == maxVersion pins to a single z-stream. A range mirrors
+      # every release between the two.
+      - name: stable-4.21
+        type: ocp
+        minVersion: 4.21.34
+        maxVersion: 4.21.34
+    # true only if you will run the OpenShift Update Service in-cluster
+    graph: false
+
+  operators:
+    - catalog: registry.redhat.io/redhat/redhat-operator-index:v4.21
+      packages:
+        - name: compliance-operator
+          channels:
+            - name: stable
+        - name: file-integrity-operator
+          channels:
+            - name: stable
+
+  additionalImages:
+    # Diagnostics. Mirror them now; you cannot fetch them later, which is
+    # exactly when you will want them.
+    - name: registry.redhat.io/rhel9/support-tools:latest
+    - name: registry.redhat.io/openshift4/ose-must-gather:latest
+    - name: registry.redhat.io/ubi9/ubi:latest
+```
+
+Notes for hand-editing:
+
+- **One `- catalog:` entry per catalog**, with all packages beneath it.
+  Repeating the same catalog key creates redundant mirrors.
+- The catalog tag tracks the OpenShift **minor** version (`v4.21`), while
+  `minVersion`/`maxVersion` are full z-stream versions.
+- Channel names are inconsistent between operators — check each one
+  against the catalog, as above.
+- Omitting `channels:` for a package mirrors its default channel.
+
+Verified package names and channels for the profiles this repo ships are
+in the table above.
+
 ### Sizing the archive to your transport
 
 ```yaml
@@ -151,6 +255,18 @@ Two cheap checks before committing to a multi-hour run.
 ```sh
 ./scripts/13-catalog.sh --check   # names and channels resolve? (seconds)
 ./scripts/15-dry-run.sh           # full resolution against the catalog
+```
+
+By hand, the dry run is the same mirror command with `--dry-run`:
+
+```sh
+cd ~/ocp-airgap
+umask 0022
+oc-mirror --v2 \
+  --config config/imageset-config.yaml \
+  --cache-dir ./cache \
+  --authfile binaries/pull-secret.json \
+  --dry-run file://./mirror-out
 ```
 
 Resolves the whole configuration without transferring images, and writes:
@@ -179,9 +295,26 @@ Measured against a real run it landed within ~6% of the actual cache size.
 An earlier sampling-based version swung 2.5× between runs on identical
 input — if you have a copy of that, replace it.
 
+**Without the repo**, deduplicating layers across a few hundred manifests
+is not something to do by hand. Two workable substitutes:
+
+- Count the images the dry run resolved (`wc -l` on `mapping.txt`) and
+  apply the measured anchors in
+  [01-prerequisites.md](01-prerequisites.md) — a 202-image set of release
+  payload plus two small operators came to 22.4 GiB deduplicated.
+- Size from the per-item marginal costs in
+  [11-capacity-planning.md](11-capacity-planning.md): roughly 19 GiB per
+  OpenShift version, single-digit GiB per operator.
+
+Then check reality as you go:
+
+```sh
+du -sh ~/ocp-airgap/cache ~/ocp-airgap/mirror-out
+```
+
 ---
 
-## 📌 Obligations this creates for the install side
+## Obligations this creates for the install side
 
 Some mirroring choices impose work on whoever installs the cluster.
 Record these in the handoff.

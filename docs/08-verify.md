@@ -142,7 +142,7 @@ Be honest with the install team about the limits.
   `oc get packagemanifests -n openshift-marketplace` once a cluster exists.
 - **Guest boot sources.** Mirrored guest images are not proof that CDI can
   import them — CDI ignores IDMS and needs its own CA configuration. See
-  [03-plan-your-content.md](03-plan-your-content.md#-obligations-this-creates-for-the-install-side).
+  [03-plan-your-content.md](03-plan-your-content.md#obligations-this-creates-for-the-install-side).
 - **Cluster-side DNS, NTP, routing.** Outside prep's reach.
 - **That you mirrored the right things.** Verification proves the mirror is
   internally consistent, not that it matches someone's intent. That was

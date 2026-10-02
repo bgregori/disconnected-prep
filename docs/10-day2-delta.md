@@ -66,6 +66,10 @@ channel carries many bundle versions and the Argo CD images are sizeable.
 The saving is real but it is proportional to what actually changed — do not
 promise a customer that every delta is small.
 
+> Working without this repo? Skip to
+> [the whole cycle by hand](#the-whole-cycle-by-hand) — the same six
+> commands, written out.
+
 ## Connected bastion
 
 ### 1. Update the configuration
@@ -172,6 +176,96 @@ EXPORT_TAG=2026-12-01_z-stream-4.21.28 ./scripts/90-handoff.sh
 
 Each delta produces new `cluster-resources/`, and they must be applied —
 new content frequently means new mirror entries.
+
+---
+
+## The whole cycle by hand
+
+Without this repo, the delta cycle is six commands. The only thing that
+makes it a *delta* is reusing the same `--cache-dir` and the same `file://`
+destination.
+
+**Connected bastion**
+
+```sh
+cd ~/ocp-airgap
+umask 0022                       # oc-mirror requires 0022; STIG sets 0077
+
+# 1. edit config/imageset-config.yaml -- bump the version, or add packages
+
+# 2. check what will move (minutes, no download)
+oc-mirror --v2 \
+  --config config/imageset-config.yaml \
+  --cache-dir ./cache \
+  --authfile binaries/pull-secret.json \
+  --dry-run file://./mirror-out
+
+# 3. mirror -- SAME destination as last time, or you get a full archive
+oc-mirror --v2 \
+  --config config/imageset-config.yaml \
+  --cache-dir ./cache \
+  --authfile binaries/pull-secret.json \
+  file://./mirror-out
+
+# 4. stage a dated copy for transport, then checksum it
+TAG=2026-12-01_day2
+mkdir -p exports/${TAG}
+cp mirror-out/mirror_*.tar config/imageset-config.yaml exports/${TAG}/
+cd exports/${TAG} && \
+  find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+```
+
+A delta transfer needs only the archives, the config and the checksums —
+the tooling is already on the far side.
+
+**Disconnected bastion**
+
+```sh
+cd ~/ocp-airgap
+umask 0022
+TAG=2026-12-01_day2
+
+# 5. verify the transfer, then push
+cd imports/${TAG} && sha256sum -c SHA256SUMS && cd ~/ocp-airgap
+
+oc-mirror --v2 \
+  --config imports/${TAG}/imageset-config.yaml \
+  --from file:///home/$(whoami)/ocp-airgap/imports/${TAG} \
+  --cache-dir /data/cache \
+  --authfile binaries/mirror-pull-secret.json \
+  docker://registry.example.com:8443
+
+# 6. the regenerated manifests -- apply these to the cluster
+ls imports/${TAG}/working-dir/cluster-resources/
+```
+
+`--from` must be an **absolute** path. `--config` is required even here.
+
+If the push reports failures, it is resumable — lower the concurrency and
+run it again:
+
+```sh
+oc-mirror --v2 --config ... --from ... --cache-dir ... --authfile ... \
+  --parallel-images 2 --parallel-layers 2 \
+  docker://registry.example.com:8443
+```
+
+Transient `405 METHOD NOT ALLOWED` errors on the registry's token endpoint
+are common when pushing many images at once to a small registry host, and
+this is the remedy. See [troubleshooting.md](troubleshooting.md).
+
+### Confirming the new content actually landed
+
+Mirrored operator images are referenced **by digest, not by tag**, so
+checking `repo:latest` against the mirror fails even when the content is
+present. Take a digest from the push output and resolve it against the
+mirror:
+
+```sh
+oc image info --registry-config binaries/mirror-pull-secret.json \
+  --filter-by-os linux/amd64 \
+  registry.example.com:8443/<repo>@sha256:<digest>
+```
 
 ---
 
