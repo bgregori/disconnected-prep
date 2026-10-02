@@ -278,38 +278,23 @@ Read `mapping.txt`. Check that every operator you expect is present, that no
 unexpected architectures crept in, and that the release image count looks
 like one version rather than a range.
 
-```sh
-./scripts/25-estimate-size.sh
-```
+### Will it fit?
 
-Reads the manifest of every resolved image and sums the layers,
-**deduplicating by digest** — shared base layers are counted once, which is
-what the cache actually stores. Deterministic, and about 40 seconds for a
-200-image set.
+**Provision 500 GB on the registry host.** That covers the registry, the
+oc-mirror cache and an import archive for any realistic content set, with
+headroom for other use of the box. The connected bastion wants a similar
+allowance for its own cache and archive staging.
 
-It reports both the deduplicated download and the naive per-image sum; the
-gap between them is the shared-layer saving, typically 30–40% for a release
-payload. Plan against the deduplicated figure and the headroom it prints.
+There is no need to compute this per-configuration. For the reasoning, the
+measured numbers behind it, and the cases where 500 GB is *not* enough —
+chiefly retaining many OpenShift versions — see
+[11-capacity-planning.md](11-capacity-planning.md).
 
-Measured against a real run it landed within ~6% of the actual cache size.
-An earlier sampling-based version swung 2.5× between runs on identical
-input — if you have a copy of that, replace it.
-
-**Without the repo**, deduplicating layers across a few hundred manifests
-is not something to do by hand. Two workable substitutes:
-
-- Count the images the dry run resolved (`wc -l` on `mapping.txt`) and
-  apply the measured anchors in
-  [01-prerequisites.md](01-prerequisites.md) — a 202-image set of release
-  payload plus two small operators came to 22.4 GiB deduplicated.
-- Size from the per-item marginal costs in
-  [11-capacity-planning.md](11-capacity-planning.md): roughly 19 GiB per
-  OpenShift version, single-digit GiB per operator.
-
-Then check reality as you go:
+Watch actual consumption as the mirror runs:
 
 ```sh
 du -sh ~/ocp-airgap/cache ~/ocp-airgap/mirror-out
+df -h ~/ocp-airgap
 ```
 
 ---

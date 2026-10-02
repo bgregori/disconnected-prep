@@ -130,5 +130,4 @@ Check the real cost before mirroring:
 
 ```sh
 ./scripts/15-dry-run.sh
-./scripts/25-estimate-size.sh
 ```

@@ -51,7 +51,7 @@ runs exactly the commands the doc shows, with the variables filled in.
 |---|---|---|---|
 | 1 | [Prerequisites](docs/01-prerequisites.md) | `00-preflight.sh` | both |
 | 2 | [FIPS/STIG on RHEL 9](docs/02-fips-stig-rhel9.md) | — | both |
-| 3 | [Plan your content](docs/03-plan-your-content.md) | `12-compose-imageset.sh`, `13-catalog.sh`, `15-dry-run.sh`, `25-estimate-size.sh` | connected |
+| 3 | [Plan your content](docs/03-plan-your-content.md) | `12-compose-imageset.sh`, `13-catalog.sh`, `15-dry-run.sh` | connected |
 | 4 | [Mirror to disk](docs/04-connected-mirror.md) | `10-fetch-binaries.sh`, `20-mirror-to-disk.sh` | connected |
 | 5 | [Transfer](docs/05-transfer.md) | `30-package-transfer.sh` | connected |
 | 6 | [Registry](docs/06-registry.md) | `50-install-registry.sh` | disconnected |

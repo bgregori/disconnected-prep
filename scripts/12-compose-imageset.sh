@@ -197,6 +197,5 @@ Read it before you mirror it:
 
 Then, in order:
     ./scripts/15-dry-run.sh         # minutes -- do all package names resolve?
-    ./scripts/25-estimate-size.sh   # minutes -- will it fit?
     ./scripts/20-mirror-to-disk.sh  # hours
 EOF

@@ -341,8 +341,12 @@ keep it with the `imageset-config.yaml`.
 
 ## Operating cadence
 
-**Every mirroring run** — record registry size, cache size, and the
-deduplicated estimate from `25-estimate-size.sh` into your trend log.
+**Every mirroring run** — record registry size and cache size into your
+trend log:
+
+```sh
+date +%F,$(du -sb "$(podman info --format '{{.Store.GraphRoot}}')" | cut -f1),$(du -sb /data/cache | cut -f1)
+```
 
 **Quarterly** — prune imports/exports; review the version list against
 what the cluster is actually running; check trend against capacity.

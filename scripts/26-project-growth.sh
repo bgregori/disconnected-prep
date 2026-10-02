@@ -10,10 +10,9 @@
 #   VERSIONS_PER_YEAR=4 YEARS=5 RETAIN=3 ./scripts/26-project-growth.sh
 #
 # Defaults are the measured values from VALIDATION.md. Override any of them
-# if you have better numbers for your own content set -- in particular,
-# re-measure GIB_PER_VERSION with scripts/25-estimate-size.sh if you mirror
-# virtualization guest images, which are large and entirely under your
-# control.
+# if you have better numbers for your own content set -- in particular
+# raise GIB_PER_VERSION if you mirror virtualization guest images, which
+# are large and entirely under your control.
 
 source "$(dirname "$0")/lib/common.sh"
 [[ -f "${REPO_ROOT}/config/prep.env" ]] && load_env

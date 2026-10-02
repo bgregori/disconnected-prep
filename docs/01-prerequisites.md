@@ -148,11 +148,11 @@ Three things worth internalising:
 > disks you cannot easily grow.
 
 Operator size varies enormously — the two compliance operators above added
-only a few GB, whereas virtualization with guest images adds hundreds. Rows
-beyond the measured one are estimates; get a real number for *your*
-configuration with `./scripts/25-estimate-size.sh` before provisioning —
-or, without the repo, from the marginal costs in
-[11-capacity-planning.md](11-capacity-planning.md).
+only a few GB, whereas virtualization with guest images adds hundreds.
+Rather than size per-configuration, provision the standard **500 GB** and
+check it against the marginal costs in
+[11-capacity-planning.md](11-capacity-planning.md) if your content set is
+unusual.
 
 > `/var/lib/containers` also grows during the push. On a STIG'd build `/var`
 > is frequently a separate, modest partition. Check it.

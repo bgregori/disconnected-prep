@@ -24,7 +24,6 @@ Environment: ______________________  Date: ____________  By: ____________
 
 - [ ] `ROLE=connected ./scripts/00-preflight.sh` passes
 - [ ] Red Hat pull secret present, contains `registry.redhat.io`
-- [ ] Cache and output directories sized from `25-estimate-size.sh`
 - [ ] Cache is **not** under `$HOME` on a small partition
 - [ ] Dry run reviewed — no missing or unexpected content
 - [ ] Mirror completed without error
@@ -39,6 +38,8 @@ Environment: ______________________  Date: ____________  By: ____________
 
 ## Disconnected bastion
 
+- [ ] **500 GB provisioned** on the filesystem podman actually uses
+      (`df -h "$(podman info --format '{{.Store.GraphRoot}}')"`), not on `--quayRoot`
 - [ ] `ROLE=disconnected ./scripts/00-preflight.sh` passes
 - [ ] `oc` / `oc-mirror` execute (SELinux relabelled, fapolicyd allowlisted)
 - [ ] Registry installed and running

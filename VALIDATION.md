@@ -38,7 +38,6 @@ second pass adding the GitOps operator.
 | `12-compose-imageset.sh` | Valid YAML; version variables substituted; multi-profile operator merge correct |
 | `13-catalog.sh` | Catalog FBC extracted (150 packages); all 8 profile packages/channels validated |
 | `15-dry-run.sh` | Resolved 202 images; produced `mapping.txt` and `missing.txt` |
-| `25-estimate-size.sh` | Rewritten after testing (below); deterministic, 38 s for 202 images, within ~6% of actual |
 | `20-mirror-to-disk.sh` | 202/202 mirrored; 29 GB archive; staged to dated export |
 | `30-package-transfer.sh` | Bundle assembled; SHA256 manifest over all 7 files incl. the 29 GB archive |
 | Transfer | 29 GB moved across the airgap |
@@ -90,10 +89,17 @@ baseline and ran config → mirror → package → transfer → push → verify.
 Confirms the whole of `docs/10-day2-delta.md`, not just the archive-size
 mechanism.
 
-### Size estimation — sampling replaced after it failed calibration
+### Size estimation — measured, then removed
 
-The estimator originally sampled N images and extrapolated. Measured
-against the same 202-image set, that was not usable:
+A size estimator was built, tested and subsequently **removed from the
+repository** in favour of flat "provision 500 GB on the registry host"
+guidance. The measurements it produced are retained here because
+`docs/11-capacity-planning.md` rests on them.
+
+Two findings worth keeping:
+
+**Sampling does not work for container image sizes.** The first version
+sampled N images and extrapolated. Against the same 202-image set:
 
 | Sample | Estimates across runs |
 |---|---|
@@ -101,50 +107,33 @@ against the same 202-image set, that was not usable:
 | 40 | 32, 40, 52 GiB |
 
 A 2.5× swing on identical input, and the 95% interval at `SAMPLE=15`
-(18–23 GiB) excluded the real archive size. Container image sizes are
-heavily skewed, so whether a few large images land in the sample dominates
-the result.
+(18–23 GiB) excluded the real archive size. Image sizes are heavily skewed,
+so whether a few large images land in the sample dominates the result. Any
+future attempt at estimation should read every manifest, not sample.
 
-Replaced with reading every manifest and **deduplicating layers by
-digest** — which is what the cache actually stores. Deterministic, 38 s for
-202 images with 8 parallel workers. Deduplicated baseline: **22.4 GiB**
-across 347 unique layers, against 36 GiB counted per-image. That 37%
-shared-layer saving is exactly why sampling overestimated.
+**Deduplication by layer digest matters.** Reading all 202 manifests and
+deduplicating gave **22.4 GiB** across 347 unique layers, against 36 GiB
+counted per-image — a 37% shared-layer saving. Measured actuals for that
+run:
 
-#### Headroom multipliers, calibrated against the measured run
+| Location | Measured |
+|---|---|
+| connected cache | 25.4 GiB |
+| archive | 28.5 GiB |
+| export dir (archive + binaries) | 29.3 GiB |
+| import dir (archive + d2m working-dir) | **32.6 GiB** |
+| disconnected extraction cache | 25.2 GiB |
+| registry storage (podman graphroot) | 27.0 GiB |
+| **connected host total** | **53.9 GiB** |
+| **disconnected host total** | **84.8 GiB** |
 
-The baseline was good immediately; the first set of headroom multipliers
-was not — **three of six under-predicted** actual consumption:
+The disconnected bastion consumed ~3.8× the deduplicated download, because
+imports, extraction cache and registry coexist. The import directory was
+the single largest consumer — disk-to-mirror writes its `working-dir/` at
+the `--from` path alongside the archive.
 
-| Item | v1 predicted | Actual | |
-|---|---|---|---|
-| cache dir | 25.7 GiB | 25.4 GiB | OK |
-| output dir | 27.9 GiB | 28.5 GiB | **UNDER** |
-| transport | 27.9 GiB | 29.3 GiB | **UNDER** |
-| import dir | 27.9 GiB | **32.6 GiB** | **UNDER by 4.6** |
-| disconnected cache | 25.7 GiB | 25.2 GiB | OK |
-| registry storage | 31.3 GiB | 27.0 GiB | OK |
-
-Two causes, both now modelled:
-
-- **`import dir` needs ×1.46, not ×1.25.** Disk-to-mirror writes its
-  `working-dir/` at the `--from` path, so the import directory holds the
-  archive *and* the generated metadata. The worst miss.
-- **`transport` needs ×1.31.** The first transfer carries the binaries
-  (~0.9 GiB) and the repo tarball on top of the archive.
-
-Observed ratios: cache ×1.13, output ×1.27, transport ×1.31, imports ×1.46,
-registry ×1.21. Multipliers set ~20% above these and re-validated — all
-predictions now cover actual at +18–20%, including per-host totals
-(connected 63.7 vs 53.9 GiB; disconnected 101.7 vs 84.8 GiB).
-
-The figure sizing guidance usually misses: the disconnected bastion needs
-roughly **4.5× the deduplicated download**, because imports, extraction
-cache and registry coexist.
-
-Calibrated from one configuration (202 images, release payload plus two
-small operators). The shape should hold; confirm with `df` before a long
-mirror.
+All of which sits comfortably inside a 500 GB registry host, which is why
+the flat recommendation holds.
 
 ### Marginal growth costs (for capacity planning)
 
