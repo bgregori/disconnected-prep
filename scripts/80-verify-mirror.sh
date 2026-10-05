@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # docs/08-verify.md -- the gate
-# Run on: DISCONNECTED bastion
+# Run on: REGISTRY HOST
 #
 # Pass/fail checks that the mirror is complete and usable. Run this before
 # handing anything to the install team. Every failure here is far cheaper to

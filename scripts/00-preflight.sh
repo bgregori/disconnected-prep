@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # docs/01-prerequisites.md -- preflight checks
-# Run on: CONNECTED bastion (ROLE=connected) or DISCONNECTED bastion (ROLE=disconnected)
+# Run on: CONNECTED bastion (ROLE=connected) or REGISTRY HOST (ROLE=disconnected)
 #
 #   ROLE=connected    ./scripts/00-preflight.sh
 #   ROLE=disconnected ./scripts/00-preflight.sh
@@ -15,13 +15,13 @@ failures=0
 
 # Run a check in a SUBSHELL so an assertion that calls die() records a
 # failure instead of exiting here. This script's value is a complete picture
-# in one run: on a bare bastion the tooling is legitimately absent, and
+# in one run: on a bare host the tooling is legitimately absent, and
 # aborting there would hide the disk, credential and hostname checks below.
 # The final tally still exits non-zero.
 check() { if ( "$@" ); then :; else failures=$((failures+1)); fi; }
 
 # Where the tooling comes from differs by side: the connected bastion
-# downloads it, the disconnected one receives it with the first transfer.
+# downloads it, the registry host receives it with the first transfer.
 if [[ "${ROLE}" == "connected" ]]; then
   TOOLING_HINT="Run scripts/10-fetch-binaries.sh (docs/01-prerequisites.md)."
 else
@@ -43,9 +43,9 @@ fi
 
 if [[ -r /proc/sys/crypto/fips_enabled ]]; then
   if [[ "$(cat /proc/sys/crypto/fips_enabled)" == "1" ]]; then
-    ok "Bastion FIPS mode: enabled"
+    ok "Host FIPS mode: enabled"
   else
-    info "Bastion FIPS mode: disabled (this is fine -- cluster FIPS is set in install-config.yaml)"
+    info "Host FIPS mode: disabled (this is fine -- cluster FIPS is set in install-config.yaml)"
   fi
 fi
 
@@ -105,7 +105,7 @@ if [[ "${ROLE}" == "connected" ]]; then
   # Only a problem when /home is actually a separate (and usually small)
   # filesystem, which is a common but not universal STIG layout.
   #
-  # `|| true` is load-bearing: on a bare bastion ${CACHE_DIR} does not exist
+  # `|| true` is load-bearing: on a bare host ${CACHE_DIR} does not exist
   # yet, df exits non-zero, and under `set -o pipefail` the failed command
   # substitution would abort this script with no tally -- exactly the
   # first-pass run documented in docs/01-prerequisites.md.

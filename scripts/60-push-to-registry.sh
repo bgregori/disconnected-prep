@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # docs/07-push-to-registry.md
-# Run on: DISCONNECTED bastion
+# Run on: REGISTRY HOST
 #
 # Disk-to-mirror (d2m). Unpacks the transferred archive and pushes its
 # contents into the local Quay.

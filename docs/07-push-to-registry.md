@@ -1,6 +1,6 @@
 # Push to the registry
 
-On the **disconnected** bastion. Unpacks the transferred archives into Quay
+On the **registry host**. Unpacks the transferred archives into Quay
 and generates the cluster manifests.
 
 ```sh

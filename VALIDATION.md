@@ -125,9 +125,9 @@ run:
 | disconnected extraction cache | 25.2 GiB |
 | registry storage (podman graphroot) | 27.0 GiB |
 | **connected host total** | **53.9 GiB** |
-| **disconnected host total** | **84.8 GiB** |
+| **registry host total** | **84.8 GiB** |
 
-The disconnected bastion consumed ~3.8× the deduplicated download, because
+The registry host consumed ~3.8× the deduplicated download, because
 imports, extraction cache and registry coexist. The import directory was
 the single largest consumer — disk-to-mirror writes its `working-dir/` at
 the `--from` path alongside the archive.
@@ -241,7 +241,7 @@ on real hardware. Listed worst-first.
 18. **`oc` missing from the handoff bundle** — looked only in `binaries/`,
     but `oc` lives on `PATH`.
 19. **`imageset-config.yaml` missing from the handoff bundle** — on the
-    disconnected host it arrives with the archive, not in `config/`.
+    registry host it arrives with the archive, not in `config/`.
 20. **The "binaries already transferred" marker was per-export.** It lived
     in the export directory, which is new every run, so each delta
     re-shipped ~840 MB of tooling. Moved to

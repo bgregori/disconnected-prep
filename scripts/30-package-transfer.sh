@@ -40,7 +40,7 @@ if [[ "${INCLUDE_BINARIES}" == "true" ]]; then
   # this only breaks on the platform that matters.
   #
   # config/prep.env is excluded deliberately -- it holds QUAY_PASSWORD, and
-  # the disconnected host needs its own paths anyway.
+  # the registry host needs its own paths anyway.
   run tar -cf "${SRC}/disconnected-prep-repo.tar" \
       --exclude='.git' \
       --exclude='config/prep.env' \
@@ -59,7 +59,7 @@ ok "Export ready: ${SRC}"
 du -sh "${SRC}" >&2
 echo >&2
 cat >&2 <<EOF
-Transfer the whole directory to the disconnected bastion at:
+Transfer the whole directory to the registry host at:
     \${IMPORTS_DIR}/${EXPORT_TAG}
 
 Before you unplug, check the destination has room:

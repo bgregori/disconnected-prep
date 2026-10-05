@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # docs/09-handoff.md
-# Run on: DISCONNECTED bastion
+# Run on: REGISTRY HOST
 #
 # Assembles everything the install side needs into one directory, including
 # ready-to-paste install-config.yaml fragments. Prep is finished when this
@@ -34,7 +34,7 @@ for b in openshift-install-fips oc; do
 done
 # The ImageSetConfiguration is part of the handoff contract -- it is the only
 # record of what this environment can install, and it is required for every
-# Day-2 update. On the disconnected host it usually arrives with the archive
+# Day-2 update. On the registry host it usually arrives with the archive
 # rather than living in config/, so check both.
 if [[ -f "${IMAGESET_CONFIG}" ]]; then
   run cp "${IMAGESET_CONFIG}" "${OUT}/imageset-config.yaml"
@@ -208,7 +208,7 @@ additionalTrustBundle: |       # from install-config-fragment.yaml
 \`\`\`
 
 The registry hostname \`${REGISTRY_HOST}\` must resolve **from the cluster
-nodes**, not only from the bastion. Verify before generating the ISO.
+nodes**, not only from the registry host. Verify before generating the ISO.
 
 ## After you install
 

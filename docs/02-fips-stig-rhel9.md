@@ -1,6 +1,6 @@
-# FIPS and STIG on the RHEL 9 bastions
+# FIPS and STIG on the RHEL 9 hosts
 
-Everything in this chapter exists because the bastion is hardened. On a
+Everything in this chapter exists because these hosts are hardened. On a
 stock RHEL 9 box none of it is necessary, which is why none of it appears in
 the standard Red Hat mirroring documentation.
 
@@ -13,7 +13,7 @@ debugging something that "should obviously work", start here.
 
 Two separate things get conflated constantly:
 
-**Bastion FIPS mode** — whether the bastion host itself boots with
+**Host FIPS mode** — whether the prep host itself boots with
 `fips=1`. It affects which crypto the mirroring tools may use. It is *not*
 required for mirroring, and not required to produce a FIPS cluster.
 
@@ -21,7 +21,7 @@ required for mirroring, and not required to produce a FIPS cluster.
 the accreditation actually cares about. It is set at install time and cannot
 be changed afterwards.
 
-You can mirror from a non-FIPS bastion to build a FIPS cluster. The one
+You can mirror from a non-FIPS host to build a FIPS cluster. The one
 genuine coupling is the installer binary: a cluster with `fips: true`
 requires `openshift-install-fips`, extracted from the release payload. See
 [08-verify.md](08-verify.md).
@@ -62,7 +62,7 @@ fapolicyd-cli --list | grep -c oc-mirror     # non-zero
 oc version --client                          # now runs
 ```
 
-> ⚠️ **STIG** Repeat this on **both** bastions, and again after replacing a
+> ⚠️ **STIG** Repeat this on **both** hosts, and again after replacing a
 > binary — the trust entry covers a specific file, and an updated `oc-mirror`
 > is a new file.
 
@@ -179,7 +179,7 @@ The scripts in this repo call `use_oc_mirror_umask` (in
 `scripts/lib/common.sh`), which sets it and says so.
 
 > ⚠️ **STIG** This applies to **every** `oc-mirror` operation — mirror-to-disk
-> on the connected bastion as much as the push on the disconnected one. It is
+> on the connected bastion as much as the push on the registry host. It is
 > easy to notice the umask requirement while installing Quay and miss that
 > the mirroring tool has the same requirement.
 >

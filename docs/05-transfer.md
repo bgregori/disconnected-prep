@@ -37,7 +37,7 @@ cd ~/ocp-airgap/imports/${TAG} && sha256sum -c SHA256SUMS
 Everything lands under `imports/${TAG}/`, including the tooling. Moving it
 into the prep tree and installing it is the first section of
 [06-registry.md](06-registry.md#stage-the-transferred-tooling) — nothing on
-the disconnected bastion works until that is done.
+the registry host works until that is done.
 
 ---
 
@@ -62,7 +62,7 @@ df -h /path/to/removable/media
 df -h /path/to/disconnected/imports      # if you can see it
 ```
 
-The disconnected bastion needs room for the imports **and** the registry
+The registry host needs room for the imports **and** the registry
 **and** the oc-mirror cache, simultaneously. See
 [01-prerequisites.md](01-prerequisites.md#disk-concretely).
 

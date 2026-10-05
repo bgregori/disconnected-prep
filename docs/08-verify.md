@@ -79,7 +79,7 @@ The script exits non-zero on any failure.
 
 ### Resolve from the node network
 
-The verification script runs on the bastion, where everything resolves. The
+The verification script runs on the registry host, where everything resolves. The
 cluster does not live there.
 
 ```sh
@@ -88,7 +88,7 @@ dig +short bastion.airgap.local
 curl -I https://bastion.airgap.local:8443/v2/
 ```
 
-This is the most common thing that passes on the bastion and fails for the
+This is the most common thing that passes on the registry host and fails for the
 cluster.
 
 ### Spot-check an operator bundle

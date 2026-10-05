@@ -92,8 +92,8 @@ def channels(pkg):
     return default, sorted(set(ch))
 
 # Pull (package, [channels]) out of the operators section. PyYAML when
-# available; otherwise an indentation-aware fallback, because a disconnected
-# bastion may not have python3-pyyaml.
+# available; otherwise an indentation-aware fallback, because the registry
+# host may not have python3-pyyaml.
 wanted = []
 try:
     import yaml

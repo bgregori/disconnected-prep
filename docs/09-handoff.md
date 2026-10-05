@@ -205,7 +205,7 @@ Write these down rather than letting them be discovered.
   disable operator-managed boot source imports, and supply the CA via
   `certConfigMap`. See
   [03-plan-your-content.md](03-plan-your-content.md#obligations-this-creates-for-the-install-side).
-- **The registry is now infrastructure.** If the disconnected bastion goes
+- **The registry is now infrastructure.** If the registry host goes
   away, the cluster cannot pull images. It needs the same care as any other
   production dependency.
 - **Compliance auto-remediation reboots nodes.** If the Compliance Operator
@@ -233,7 +233,7 @@ The questions worth asking directly:
 
 ## Keeping prep reproducible
 
-Retain on the disconnected bastion:
+Retain on the registry host:
 
 - `imageset-config.yaml` — required for Day-2
 - `imports/<tag>/` — at least the most recent

@@ -84,7 +84,7 @@ ________________________________________________
 - [ ] Only architecture `__________` is mirrored
 - [ ] Only version `__________` exists; upgrades need a prep cycle
 - [ ] The registry is now **production infrastructure** — if the
-      disconnected bastion goes away, the cluster cannot pull images
+      registry host goes away, the cluster cannot pull images
 - [ ] Adding content requires a transfer window. Typical lead time:
       `__________`
 

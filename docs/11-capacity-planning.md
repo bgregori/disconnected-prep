@@ -91,7 +91,7 @@ Two things people get wrong here:
 
 **The caches are not scratch space.** `--cache-dir` holds the full
 uncompressed layer set and grows exactly as the registry does — on *both*
-bastions. Over three years you are provisioning that capacity three times.
+hosts. Over three years you are provisioning that capacity three times.
 It is tempting to treat the cache as disposable, but deleting it means the
 next "small delta update" re-downloads everything.
 
@@ -324,7 +324,7 @@ roughly one update cycle of headroom, and if reclamation is the answer it
 takes a fortnight.
 
 ```sh
-# cheap check, suitable for cron on both bastions
+# cheap check, suitable for cron on both hosts
 for p in "$(podman info --format '{{.Store.GraphRoot}}' 2>/dev/null)" \
          /data/cache ~/ocp-airgap/imports; do
   [ -d "$p" ] || continue

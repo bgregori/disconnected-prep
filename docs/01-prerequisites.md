@@ -1,22 +1,22 @@
 # Prerequisites
 
 What must exist before you start. Read this before provisioning the
-bastions — two of these are expensive to fix later.
+hosts — two of these are expensive to fix later.
 
 Work this chapter top to bottom. It ends with the tooling installed, which
 every later chapter assumes.
 
 Preflight runs **twice**. The first pass checks the host itself and runs on
-a bare, freshly provisioned bastion. The second comes after
+a bare, freshly provisioned host. The second comes after
 [Install the tooling](#install-the-tooling) below.
 
 ```sh
 cp config/prep.env.example config/prep.env
 ${EDITOR} config/prep.env
 
-# first pass -- host posture, on a bare bastion
+# first pass -- host posture, on a bare host
 ROLE=connected    ./scripts/00-preflight.sh    # on the connected bastion
-ROLE=disconnected ./scripts/00-preflight.sh    # on the disconnected bastion
+ROLE=disconnected ./scripts/00-preflight.sh    # on the registry host
 ```
 
 On a bare host that first pass **exits non-zero**, reporting missing `oc`,
@@ -33,12 +33,12 @@ mirroring.
 Without the repo, these are the checks that matter. They split the same way
 the script does.
 
-**Pass 1 — on a bare bastion.** Nothing here needs the tooling installed.
+**Pass 1 — on a bare host.** Nothing here needs the tooling installed.
 
 ```sh
 # --- OS and hardening posture ---
 cat /etc/redhat-release
-cat /proc/sys/crypto/fips_enabled           # 1 = bastion in FIPS mode
+cat /proc/sys/crypto/fips_enabled           # 1 = host in FIPS mode
 getenforce                                  # expect Enforcing
 umask                                       # 0077 on a STIG build -- see docs/02
 systemctl is-active fapolicyd firewalld
@@ -81,9 +81,9 @@ checks are there, under
 
 ---
 
-## The two bastions
+## The two hosts
 
-| | Connected | Disconnected |
+| | Connected bastion | Registry host |
 |---|---|---|
 | Network | Internet, or a proxy to it | Airgapped, routable to cluster nodes |
 | OS | RHEL 9 | RHEL 9 |
@@ -92,10 +92,17 @@ checks are there, under
 | Disk | cache + archive output | Quay + imports + cache |
 | Role | pull content, build archives | serve content to the cluster |
 
-The disconnected bastion is not a scratch host. It runs the mirror registry
-that the cluster depends on, during install and for the life of the cluster.
-Treat it as production from the start: back it up, and do not plan to
-repurpose it after the evaluation.
+The registry host is airgapped — "registry host" names what it does, since
+it is the only one of the two that outlives prep. It is not a scratch host:
+it runs the mirror registry the cluster depends on, during install and for
+the life of the cluster. Treat it as production from the start: back it up,
+and do not plan to repurpose it after the evaluation.
+
+> **Provisioning this with the `disconnected-install-sandbox` Ansible?**
+> The names line up with its `sandbox_role` tags: `bastion` is the
+> connected bastion, `registry` is the registry host. Note that its
+> `bastion` is also the SSH jump host for everything else, and the registry
+> host is reached through it by `ProxyCommand`.
 
 ### Disk, concretely
 
@@ -109,7 +116,7 @@ On the **connected** bastion you need two full-size copies:
 They are not the same data and not deduplicated against each other. On the
 same partition, budget double.
 
-On the **disconnected** bastion:
+On the **registry host**:
 
 - **podman's storage root** — where the registry images actually live,
   ~1.3× the archive size
@@ -156,7 +163,7 @@ deduplicated — run end to end on RHEL 9.6:
 | disconnected | extraction cache | 25.2 GiB |
 | disconnected | registry storage (podman graphroot) | 27.0 GiB |
 | | **connected host total** | **53.9 GiB** |
-| | **disconnected host total** | **84.8 GiB** |
+| | **registry host total** | **84.8 GiB** |
 
 Wall clock: 14m53s to mirror (7m pull, 8m tarball), 27m to push.
 
@@ -167,7 +174,7 @@ Three things worth internalising:
 - The **import directory is the biggest single consumer** on the
   disconnected side, because disk-to-mirror writes its `working-dir/` there
   alongside the archive.
-- The disconnected bastion needed **~3.8× the deduplicated download** in
+- The registry host needed **~3.8× the deduplicated download** in
   total, since imports, cache and registry all coexist. Plan for ~4.5×.
 
 > The numbers above size the **first** mirror. A registry that will run for
@@ -212,12 +219,12 @@ Requirements:
 - **Fully qualified.** `oc-mirror` parses an unqualified `docker://` target
   as a repository name, not a hostname. `bastion` fails; `bastion.airgap.local`
   works.
-- **Resolvable from the cluster nodes**, not just from the bastion. An
-  `/etc/hosts` entry on the bastion is the classic trap: mirroring succeeds
+- **Resolvable from the cluster nodes**, not just from the registry host. An
+  `/etc/hosts` entry on the registry host is the classic trap: mirroring succeeds
   and the install hangs at bootstrap.
 - **Stable.** Prefer a DNS name you control over an IP.
 
-Verify from somewhere that is not the bastion, before you mirror:
+Verify from somewhere that is not the registry host, before you mirror:
 
 ```sh
 dig +short bastion.airgap.local
@@ -249,7 +256,7 @@ Specifics belong to the install side; record what you confirmed in
 
 ---
 
-## Software on the bastions
+## Software on both hosts
 
 `00-preflight.sh` checks for these.
 
@@ -264,11 +271,11 @@ Specifics belong to the install side; record what you confirmed in
 | `jq` | optional | nicer preflight validation |
 | `tmux` | recommended | multi-hour runs |
 
-No internet access is assumed on the disconnected bastion for any of this —
+No internet access is assumed on the registry host for any of this —
 `30-package-transfer.sh` carries the tooling across on the first transfer,
 and [06-registry.md](06-registry.md) stages it into place on arrival.
 
-> Install `podman` on the disconnected bastion while it can still reach a
+> Install `podman` on the registry host while it can still reach a
 > package source, or from the RHEL media. `06-registry.md` queries it
 > *before* installing Quay, to decide where image data will land.
 
@@ -276,7 +283,7 @@ and [06-registry.md](06-registry.md) stages it into place on arrival.
 
 ## Install the tooling
 
-> **Connected bastion.** On the disconnected bastion the same binaries
+> **Connected bastion.** On the registry host the same binaries
 > arrive with the first transfer instead — see
 > [06-registry.md](06-registry.md).
 
@@ -302,7 +309,7 @@ Pull `oc-mirror` from the **same channel as your payload**, not from
 the version-matched tooling on the other side does not expect.
 
 `mirror-registry.tar.gz` is downloaded here even though it is only used on
-the disconnected bastion — this is the host with internet access, and
+the registry host — this is the host with internet access, and
 `30-package-transfer.sh` carries it across.
 
 ```sh
@@ -364,7 +371,7 @@ jq -e '.auths["registry.redhat.io"]' ~/ocp-airgap/binaries/pull-secret.json \
   >/dev/null && echo "pull secret has registry.redhat.io"
 ```
 
-On the **disconnected** bastion the equivalent checks belong after the
+On the **registry host** the equivalent checks belong after the
 transfer has been staged — [06-registry.md](06-registry.md) runs them
 there, including the `podman info` storage check that only makes sense on
 that host.

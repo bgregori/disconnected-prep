@@ -13,7 +13,7 @@
 # and emits the surrounding YAML structure. Multiple profiles contributing
 # operators to the same catalog are merged under one catalog entry.
 #
-# No YAML library is required -- disconnected bastions often lack PyYAML.
+# No YAML library is required -- registry hosts often lack PyYAML.
 
 source "$(dirname "$0")/lib/common.sh"
 load_env

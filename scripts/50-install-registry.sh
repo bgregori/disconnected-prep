@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # docs/06-registry.md
-# Run on: DISCONNECTED bastion
+# Run on: REGISTRY HOST
 #
 # Installs Red Hat mirror-registry (standalone Quay), trusts its CA, and
 # writes the auth file used for the registry push.
@@ -140,7 +140,7 @@ fi
 ok "Registry ready at https://$(registry_ref)"
 cat >&2 <<EOF
 
-Confirm from a machine that is NOT this bastion -- the cluster nodes must
+Confirm from a machine that is NOT this host -- the cluster nodes must
 resolve and reach ${REGISTRY_HOST}, not just localhost:
     curl -I https://$(registry_ref)/v2/
 

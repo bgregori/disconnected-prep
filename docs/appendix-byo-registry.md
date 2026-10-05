@@ -20,8 +20,8 @@ Your registry must:
 - Allow **pushing arbitrary repository paths**. `oc-mirror` creates
   repositories mirroring upstream structure — `openshift/release-images`,
   `redhat/redhat-operator-index`, and so on.
-- Serve a **TLS certificate the bastion and cluster nodes trust**.
-- Be **reachable from the cluster nodes**, not only the bastion.
+- Serve a **TLS certificate the push host and cluster nodes trust**.
+- Be **reachable from the cluster nodes**, not only the host you push from.
 - Have **capacity**, with headroom for Day-2 updates.
 
 It does **not** need to be airgapped itself, though in most such
@@ -183,4 +183,4 @@ than a Quay-generated one.
 The manual check in [08-verify.md](08-verify.md) matters more here: confirm
 resolution and pull **from the node network**, since an enterprise registry
 is more likely than a local Quay to sit behind firewalls or load balancers
-the nodes see differently from the bastion.
+the nodes see differently from the host you push from.

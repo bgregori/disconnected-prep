@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # docs/06-registry.md -- "Stage the transferred tooling"
-# Run on: DISCONNECTED bastion, after the first transfer has landed
+# Run on: REGISTRY HOST, after the first transfer has landed
 #
 # The transfer deposits everything under ${IMPORTS_DIR}/${EXPORT_TAG}/, but
 # the rest of the disconnected-side tooling expects the same prep tree

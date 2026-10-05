@@ -139,7 +139,7 @@ is already on the other side.
 
 ---
 
-## Disconnected bastion
+## Registry host
 
 ### 5. Verify and push
 
@@ -218,7 +218,7 @@ cd exports/${TAG} && \
 A delta transfer needs only the archives, the config and the checksums —
 the tooling is already on the far side.
 
-**Disconnected bastion**
+**Registry host**
 
 ```sh
 cd ~/ocp-airgap

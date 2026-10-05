@@ -36,7 +36,7 @@ Environment: ______________________  Date: ____________  By: ____________
 - [ ] Red Hat pull secret **not** carried across
 - [ ] Source export retained on the connected bastion
 
-## Disconnected bastion
+## Registry host
 
 - [ ] **500 GB provisioned** on the filesystem podman actually uses
       (`df -h "$(podman info --format '{{.Store.GraphRoot}}')"`), not on `--quayRoot`
@@ -58,7 +58,7 @@ Environment: ______________________  Date: ____________  By: ____________
 - [ ] IDMS / ITMS / CatalogSource / signatures generated
 - [ ] Catalog images pullable
 - [ ] Additional images spot-checked
-- [ ] **Registry resolves and responds from the node network, not just the bastion**
+- [ ] **Registry resolves and responds from the node network, not just the registry host**
 - [ ] Registry has headroom for Day-2 growth
 
 ## Environment readiness (confirmed, not configured)

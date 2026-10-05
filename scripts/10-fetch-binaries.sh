@@ -2,7 +2,7 @@
 # docs/01-prerequisites.md -- "Install the tooling"
 # Run on: CONNECTED bastion
 #
-# The disconnected bastion gets the same binaries from the first transfer
+# The registry host gets the same binaries from the first transfer
 # instead; scripts/40-stage-transfer.sh installs them there.
 #
 # Downloads oc, oc-mirror and mirror-registry, installs the first two to

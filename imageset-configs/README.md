@@ -55,7 +55,7 @@ The composer collects each section across all selected fragments, merges
 operator entries that share a catalog into one, and emits the surrounding
 YAML. Comments are preserved so the generated file explains itself.
 
-No YAML library is required — disconnected bastions frequently lack PyYAML.
+No YAML library is required — registry hosts frequently lack PyYAML.
 
 ### Variables
 

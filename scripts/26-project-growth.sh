@@ -97,7 +97,7 @@ print(f"    imports / exports       >= {base*1.6:>6,.0f} GiB   each side, transi
 print()
 print(f"    volume group, min size  >= {(rec_reg + rec_cache)*1.4:>6,.0f} GiB   leave ~40% unallocated")
 print()
-print("  'all three' = registry + the oc-mirror cache on BOTH bastions.")
+print("  'all three' = registry + the oc-mirror cache on BOTH hosts.")
 print("  Add ~1 archive per side for imports/exports (transient).")
 print("  Provision on LVM and leave free extents -- see docs/11-capacity-planning.md")
 print()

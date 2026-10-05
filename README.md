@@ -14,7 +14,7 @@ same, and this repo is the part you do not want to rewrite per cluster.
 ## Scope
 
 ```
-   CONNECTED BASTION                    DISCONNECTED BASTION
+   CONNECTED BASTION                    REGISTRY HOST (disconnected)
    ┌──────────────────┐                ┌──────────────────────┐
    │ plan content     │                │ install Quay         │
    │ mirror to disk   │ ── transfer ─> │ push to registry     │

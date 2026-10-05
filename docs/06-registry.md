@@ -1,6 +1,6 @@
 # Mirror registry
 
-On the **disconnected** bastion. Installs Red Hat `mirror-registry`
+On the **registry host**. Installs Red Hat `mirror-registry`
 (standalone Quay), trusts its CA, and writes the auth file used for the
 push.
 
@@ -268,11 +268,11 @@ These are normal noise, not a failure.
 
 ## Verify from somewhere else
 
-The registry working on the bastion proves very little. The cluster nodes
+The registry working on the registry host proves very little. The cluster nodes
 are what matter.
 
 ```sh
-# from a host on the node network -- NOT the bastion
+# from a host on the node network -- NOT the registry host
 dig +short bastion.airgap.local
 curl -I https://bastion.airgap.local:8443/v2/
 ```
