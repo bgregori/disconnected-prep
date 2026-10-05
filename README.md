@@ -49,12 +49,12 @@ runs exactly the commands the doc shows, with the variables filled in.
 
 | | Doc | Script | Where |
 |---|---|---|---|
-| 1 | [Prerequisites](docs/01-prerequisites.md) | `00-preflight.sh` | both |
+| 1 | [Prerequisites](docs/01-prerequisites.md) | `00-preflight.sh`, `10-fetch-binaries.sh` | both |
 | 2 | [FIPS/STIG on RHEL 9](docs/02-fips-stig-rhel9.md) | — | both |
 | 3 | [Plan your content](docs/03-plan-your-content.md) | `12-compose-imageset.sh`, `13-catalog.sh`, `15-dry-run.sh` | connected |
-| 4 | [Mirror to disk](docs/04-connected-mirror.md) | `10-fetch-binaries.sh`, `20-mirror-to-disk.sh` | connected |
+| 4 | [Mirror to disk](docs/04-connected-mirror.md) | `20-mirror-to-disk.sh` | connected |
 | 5 | [Transfer](docs/05-transfer.md) | `30-package-transfer.sh` | connected |
-| 6 | [Registry](docs/06-registry.md) | `50-install-registry.sh` | disconnected |
+| 6 | [Registry](docs/06-registry.md) | `40-stage-transfer.sh`, `50-install-registry.sh` | disconnected |
 | 7 | [Push to registry](docs/07-push-to-registry.md) | `60-push-to-registry.sh` | disconnected |
 | 8 | [Verify](docs/08-verify.md) | `70-extract-installer.sh`, `80-verify-mirror.sh` | disconnected |
 | 9 | [Handoff](docs/09-handoff.md) | `90-handoff.sh` | disconnected |

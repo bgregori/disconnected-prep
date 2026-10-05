@@ -87,6 +87,18 @@ require_space() {
   ok "${path}: ${avail_gb} GB free (need ${need_gb} GB)"
 }
 
+# mount_point <path> -- the filesystem a path lives on, or "" if unknowable.
+# Walks up to the nearest existing ancestor, so it works before the prep tree
+# has been created. Never fails: callers run under `set -e` with pipefail,
+# where a bare `df` on a missing path would abort the script.
+mount_point() {
+  local path="$1"
+  while [[ ! -d "${path}" && "${path}" != "/" && "${path}" != "." ]]; do
+    path="$(dirname "${path}")"
+  done
+  df -P "${path}" 2>/dev/null | tail -1 | awk '{print $NF}' || true
+}
+
 registry_ref() { printf '%s:%s' "${REGISTRY_HOST}" "${REGISTRY_PORT}"; }
 
 # oc-mirror requires umask 0022 and emits

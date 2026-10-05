@@ -5,12 +5,59 @@ On the **disconnected** bastion. Installs Red Hat `mirror-registry`
 push.
 
 ```sh
+./scripts/40-stage-transfer.sh                # first transfer only
 ROLE=disconnected ./scripts/00-preflight.sh
 ./scripts/50-install-registry.sh
 ```
 
 Already have an enterprise registry? See
 [appendix-byo-registry.md](appendix-byo-registry.md) and skip this chapter.
+
+---
+
+## Stage the transferred tooling
+
+**First transfer only.** Everything arrived under `imports/<tag>/`, but the
+rest of this chapter — and `50-install-registry.sh` — expects the prep tree
+layout at `~/ocp-airgap/`. Put it in place before anything else:
+
+```sh
+TAG=2026-10-02_initial
+
+mkdir -p ~/ocp-airgap/{binaries,config,cache}
+cp ~/ocp-airgap/imports/${TAG}/binaries/* ~/ocp-airgap/binaries/
+```
+
+Then install `oc` and `oc-mirror` on *this* host:
+
+```sh
+cd ~/ocp-airgap/binaries
+sudo tar -xzf openshift-client-linux.tar.gz -C /usr/local/bin oc
+sudo tar -xzf oc-mirror.rhel9.tar.gz -C /usr/local/bin oc-mirror
+sudo chown root:root /usr/local/bin/oc /usr/local/bin/oc-mirror
+sudo chmod 0755 /usr/local/bin/oc /usr/local/bin/oc-mirror
+
+sudo restorecon -v /usr/local/bin/oc /usr/local/bin/oc-mirror
+sudo fapolicyd-cli --file add /usr/local/bin/oc
+sudo fapolicyd-cli --file add /usr/local/bin/oc-mirror
+sudo fapolicyd-cli --update
+```
+
+> ⚠️ **STIG** The fapolicyd allowlist is per-host. Doing this on the
+> connected bastion did nothing for this one.
+
+Verify, then run preflight — which checks for `oc` and `oc-mirror` and
+fails without them:
+
+```sh
+oc version --client
+( umask 0022; oc-mirror version --v2 >/dev/null && echo "oc-mirror OK" )
+
+ROLE=disconnected ./scripts/00-preflight.sh
+```
+
+`podman` must already be present; `mirror-registry` requires it and does
+not install it. The next section queries it before Quay exists.
 
 ---
 

@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# docs/04-connected-mirror.md -- "Download required executables"
+# docs/01-prerequisites.md -- "Install the tooling"
 # Run on: CONNECTED bastion
+#
+# The disconnected bastion gets the same binaries from the first transfer
+# instead; scripts/40-stage-transfer.sh installs them there.
 #
 # Downloads oc, oc-mirror and mirror-registry, installs the first two to
 # /usr/local/bin, and applies the SELinux + fapolicyd handling a STIG'd

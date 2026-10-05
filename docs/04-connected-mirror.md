@@ -4,50 +4,34 @@ On the **connected** bastion. Pulls everything in the ImageSetConfiguration
 into tar archives.
 
 ```sh
-./scripts/10-fetch-binaries.sh
 ROLE=connected ./scripts/00-preflight.sh
 ./scripts/20-mirror-to-disk.sh
 ```
 
+By now the tooling and pull secret are in place from
+[01-prerequisites.md](01-prerequisites.md#install-the-tooling), and
+`imageset-config.yaml` exists from
+[03-plan-your-content.md](03-plan-your-content.md). So this is the
+preflight run that must **exit clean** — the last gate before a multi-hour
+download.
+
+Missing `oc` or `oc-mirror` means chapter 1's tooling step was skipped; a
+missing ImageSetConfiguration means chapter 3 was.
+
 ---
 
-## Download the tooling
+## Tooling
+
+Installed in
+[01-prerequisites.md](01-prerequisites.md#install-the-tooling), along with
+the pull secret at `~/ocp-airgap/binaries/pull-secret.json`. Confirm before
+starting a long run:
 
 ```sh
-mkdir -p ~/ocp-airgap/{binaries,config,cache,mirror-out,exports}
-cd ~/ocp-airgap/binaries
-
-base=https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable-4.21
-
-curl -fLO ${base}/openshift-client-linux.tar.gz
-curl -fLO ${base}/oc-mirror.rhel9.tar.gz
-curl -fLO https://developers.redhat.com/content-gateway/file/pub/openshift-v4/clients/mirror-registry/1.3.9/mirror-registry.tar.gz
+oc version --client
+( umask 0022; oc-mirror version --v2 >/dev/null && echo "oc-mirror OK" )
+ls ~/ocp-airgap/config/imageset-config.yaml
 ```
-
-Pull `oc-mirror` from the **same channel as your payload**, not from
-`clients/ocp/latest`. A newer `oc-mirror` can write archive metadata that
-the version-matched tooling on the other side does not expect.
-
-```sh
-sudo tar -xzf openshift-client-linux.tar.gz -C /usr/local/bin oc
-sudo tar -xzf oc-mirror.rhel9.tar.gz -C /usr/local/bin oc-mirror
-sudo chown root:root /usr/local/bin/oc /usr/local/bin/oc-mirror
-sudo chmod 0755 /usr/local/bin/oc /usr/local/bin/oc-mirror
-```
-
-> ⚠️ **STIG** On a hardened host these binaries will not execute yet.
-> Relabel for SELinux, then add to the fapolicyd allowlist:
-> ```sh
-> sudo restorecon -v /usr/local/bin/oc /usr/local/bin/oc-mirror
-> sudo fapolicyd-cli --file add /usr/local/bin/oc
-> sudo fapolicyd-cli --file add /usr/local/bin/oc-mirror
-> sudo fapolicyd-cli --update
-> ```
-> Order matters — relabelling changes the file, so trust it afterwards.
-> See [02-fips-stig-rhel9.md](02-fips-stig-rhel9.md).
-
-Place the Red Hat pull secret at `~/ocp-airgap/binaries/pull-secret.json`
-and `chmod 600` it.
 
 ---
 

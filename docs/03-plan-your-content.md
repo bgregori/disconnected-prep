@@ -11,6 +11,11 @@ So the question to answer precisely, before running anything:
 
 > **What will anyone need to install on this cluster, ever?**
 
+> **Needs the tooling.** Sections 2 and 4 run `oc` and `oc-mirror` against
+> `~/ocp-airgap/binaries/pull-secret.json`. Install them first —
+> [01-prerequisites.md](01-prerequisites.md#install-the-tooling). Section 1
+> is pure planning and needs nothing.
+
 ---
 
 ## 1. Inventory what you need

@@ -34,6 +34,11 @@ On arrival:
 cd ~/ocp-airgap/imports/${TAG} && sha256sum -c SHA256SUMS
 ```
 
+Everything lands under `imports/${TAG}/`, including the tooling. Moving it
+into the prep tree and installing it is the first section of
+[06-registry.md](06-registry.md#stage-the-transferred-tooling) — nothing on
+the disconnected bastion works until that is done.
+
 ---
 
 ## Do not re-compress

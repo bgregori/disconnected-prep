@@ -14,7 +14,7 @@
 
 source "$(dirname "$0")/lib/common.sh"
 load_env
-require_vars PREP_ROOT QUAY_ROOT REGISTRY_HOST REGISTRY_PORT QUAY_USER QUAY_PASSWORD MIRROR_PULL_SECRET
+require_vars PREP_ROOT QUAY_ROOT REGISTRY_HOST REGISTRY_PORT QUAY_USER QUAY_PASSWORD MIRROR_PULL_SECRET IMPORTS_DIR EXPORT_TAG
 require_cmds tar sudo base64
 
 [[ "${QUAY_PASSWORD}" == "CHANGE-ME-before-running" ]] && die "Set QUAY_PASSWORD in config/prep.env."
@@ -34,8 +34,19 @@ fi
 require_space "${QUAY_ROOT}" "${MIN_QUAYROOT_GB:-1}"
 
 if [[ ! -x "${BIN}/mirror-registry" ]]; then
-  [[ -f "${BIN}/mirror-registry.tar.gz" ]] || die "No mirror-registry.tar.gz in ${BIN}"
-  run tar -xzf "${BIN}/mirror-registry.tar.gz" -C "${BIN}"
+  # The transfer lands the tarball under imports/<tag>/binaries/, not here.
+  # 40-stage-transfer.sh normally copies it across; fall back to the import
+  # directory so a hand-run that skipped that step still works.
+  TARBALL="${BIN}/mirror-registry.tar.gz"
+  if [[ ! -f "${TARBALL}" ]]; then
+    IMPORTED="${IMPORTS_DIR}/${EXPORT_TAG}/binaries/mirror-registry.tar.gz"
+    [[ -f "${IMPORTED}" ]] || die "No mirror-registry.tar.gz in ${BIN} or ${IMPORTED}.
+Run ./scripts/40-stage-transfer.sh first -- see docs/06-registry.md."
+    info "Not staged in ${BIN}; using ${IMPORTED}"
+    run mkdir -p "${BIN}"
+    run cp "${IMPORTED}" "${TARBALL}"
+  fi
+  run tar -xzf "${TARBALL}" -C "${BIN}"
 fi
 
 # --- firewall --------------------------------------------------------------

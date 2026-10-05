@@ -3,18 +3,37 @@
 What must exist before you start. Read this before provisioning the
 bastions — two of these are expensive to fix later.
 
+Work this chapter top to bottom. It ends with the tooling installed, which
+every later chapter assumes.
+
+Preflight runs **twice**. The first pass checks the host itself and runs on
+a bare, freshly provisioned bastion. The second comes after
+[Install the tooling](#install-the-tooling) below.
+
 ```sh
 cp config/prep.env.example config/prep.env
 ${EDITOR} config/prep.env
 
+# first pass -- host posture, on a bare bastion
 ROLE=connected    ./scripts/00-preflight.sh    # on the connected bastion
 ROLE=disconnected ./scripts/00-preflight.sh    # on the disconnected bastion
 ```
 
+On a bare host that first pass **exits non-zero**, reporting missing `oc`,
+`oc-mirror` and pull secret. That is expected — every host check above them
+has still run, and they are installed at the end of this chapter. It also
+reports a missing ImageSetConfiguration, which stays missing until
+[03-plan-your-content.md](03-plan-your-content.md); the run that must exit
+clean is the one in
+[04-connected-mirror.md](04-connected-mirror.md), immediately before
+mirroring.
+
 ### Checking by hand
 
-Without the repo, these are the checks that matter. Run them on both
-bastions before starting.
+Without the repo, these are the checks that matter. They split the same way
+the script does.
+
+**Pass 1 — on a bare bastion.** Nothing here needs the tooling installed.
 
 ```sh
 # --- OS and hardening posture ---
@@ -24,22 +43,12 @@ getenforce                                  # expect Enforcing
 umask                                       # 0077 on a STIG build -- see docs/02
 systemctl is-active fapolicyd firewalld
 
-# --- tooling actually executes (fapolicyd blocks unlisted binaries) ---
-oc version --client
-( umask 0022; oc-mirror version --v2 >/dev/null && echo "oc-mirror OK" )
-
 # --- oc-mirror's local storage port must be free ---
 ss -ltn | grep -q ':55000 ' && echo "PORT 55000 IN USE" || echo "port 55000 free"
 
-# --- disk, on the filesystems that actually fill up ---
-df -h "$(dirname ~/ocp-airgap/cache)"       # cache
-df -h "$(dirname ~/ocp-airgap/mirror-out)"  # archives
-# disconnected host only -- where Quay really stores images:
-df -h "$(podman info --format '{{.Store.GraphRoot}}')"
-
-# --- credentials (connected host only) ---
-jq -e '.auths["registry.redhat.io"]' ~/ocp-airgap/binaries/pull-secret.json \
-  >/dev/null && echo "pull secret has registry.redhat.io"
+# --- disk ---
+# ~/ocp-airgap does not exist yet, so check the filesystem it will land on.
+df -h ~
 
 # --- upstream reachable (connected host only) ---
 for r in registry.redhat.io quay.io mirror.openshift.com; do
@@ -48,7 +57,13 @@ done
 
 # --- registry hostname must be fully qualified ---
 # oc-mirror parses an unqualified docker:// target as a repository name.
+# See "Naming and DNS" below -- resolve it from a cluster node, not here.
 ```
+
+**Pass 2** needs the tooling and credentials to exist, so it comes after
+[Install the tooling](#install-the-tooling) at the end of this chapter. The
+checks are there, under
+[Second preflight pass](#second-preflight-pass).
 
 ---
 
@@ -162,20 +177,13 @@ unusual.
 ## Credentials
 
 A Red Hat pull secret with entitlements for the content you intend to
-mirror. Download from
-<https://console.redhat.com/openshift/downloads> — it is at the **bottom**
-of the downloads list, not with the binaries.
+mirror. It must contain a `registry.redhat.io` key: that entitlement is
+separate from `quay.io`, so a secret can succeed on the release payload and
+still fail partway through operator mirroring with authentication errors.
 
-```sh
-jq -e '.auths["registry.redhat.io"]' ~/ocp-airgap/binaries/pull-secret.json
-```
-
-If that key is absent, operator mirroring fails partway through with
-authentication errors. `registry.redhat.io` entitlement is separate from
-`quay.io` — a secret can succeed on the release payload and fail on
-operators.
-
-> ⚠️ **STIG** Connected bastion only. Do not carry it across the airgap.
+Confirm the entitlement now, on the account you will use. You put the file
+in place under [Install the tooling](#install-the-tooling) below, and check
+its contents in the [second preflight pass](#second-preflight-pass).
 
 ---
 
@@ -233,17 +241,119 @@ Specifics belong to the install side; record what you confirmed in
 
 | Tool | Where | Notes |
 |---|---|---|
-| `oc` | both | installed by `10-fetch-binaries.sh` |
+| `oc` | both | below on connected; arrives by transfer on disconnected |
 | `oc-mirror` | both | v2; same channel as the payload |
-| `mirror-registry` | disconnected | the Quay installer bundle |
-| `podman` | disconnected | pulled in by mirror-registry |
+| `mirror-registry` | disconnected | the Quay installer bundle; arrives by transfer |
+| `podman` | disconnected | **must already be installed** — `mirror-registry` requires it and does not supply it |
 | `curl`, `tar`, `sha256sum` | both | base install |
 | `python3` | both | used by the compose/estimate scripts |
 | `jq` | optional | nicer preflight validation |
 | `tmux` | recommended | multi-hour runs |
 
 No internet access is assumed on the disconnected bastion for any of this —
-`30-package-transfer.sh` carries the tooling across on the first transfer.
+`30-package-transfer.sh` carries the tooling across on the first transfer,
+and [06-registry.md](06-registry.md) stages it into place on arrival.
+
+> Install `podman` on the disconnected bastion while it can still reach a
+> package source, or from the RHEL media. `06-registry.md` queries it
+> *before* installing Quay, to decide where image data will land.
+
+---
+
+## Install the tooling
+
+> **Connected bastion.** On the disconnected bastion the same binaries
+> arrive with the first transfer instead — see
+> [06-registry.md](06-registry.md).
+
+```sh
+./scripts/10-fetch-binaries.sh
+```
+
+### By hand
+
+```sh
+mkdir -p ~/ocp-airgap/{binaries,config,cache,mirror-out,exports}
+cd ~/ocp-airgap/binaries
+
+base=https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable-4.21
+
+curl -fLO ${base}/openshift-client-linux.tar.gz
+curl -fLO ${base}/oc-mirror.rhel9.tar.gz
+curl -fLO https://developers.redhat.com/content-gateway/file/pub/openshift-v4/clients/mirror-registry/1.3.9/mirror-registry.tar.gz
+```
+
+Pull `oc-mirror` from the **same channel as your payload**, not from
+`clients/ocp/latest`. A newer `oc-mirror` can write archive metadata that
+the version-matched tooling on the other side does not expect.
+
+`mirror-registry.tar.gz` is downloaded here even though it is only used on
+the disconnected bastion — this is the host with internet access, and
+`30-package-transfer.sh` carries it across.
+
+```sh
+sudo tar -xzf openshift-client-linux.tar.gz -C /usr/local/bin oc
+sudo tar -xzf oc-mirror.rhel9.tar.gz -C /usr/local/bin oc-mirror
+sudo chown root:root /usr/local/bin/oc /usr/local/bin/oc-mirror
+sudo chmod 0755 /usr/local/bin/oc /usr/local/bin/oc-mirror
+```
+
+> ⚠️ **STIG** On a hardened host these binaries will not execute yet.
+> Relabel for SELinux, then add to the fapolicyd allowlist:
+> ```sh
+> sudo restorecon -v /usr/local/bin/oc /usr/local/bin/oc-mirror
+> sudo fapolicyd-cli --file add /usr/local/bin/oc
+> sudo fapolicyd-cli --file add /usr/local/bin/oc-mirror
+> sudo fapolicyd-cli --update
+> ```
+> Order matters — relabelling changes the file, so trust it afterwards.
+> See [02-fips-stig-rhel9.md](02-fips-stig-rhel9.md).
+
+### Place the pull secret
+
+Download it from
+<https://console.redhat.com/openshift/downloads> (bottom of the downloads
+list), then:
+
+```sh
+cp ~/Downloads/pull-secret.json ~/ocp-airgap/binaries/pull-secret.json
+chmod 600 ~/ocp-airgap/binaries/pull-secret.json
+```
+
+> ⚠️ **STIG** Connected bastion only. Do not carry it across the airgap.
+
+---
+
+## Second preflight pass
+
+Everything above now exists, so these checks can run. The
+ImageSetConfiguration is the one remaining gap, and
+[03-plan-your-content.md](03-plan-your-content.md) fills it.
+
+```sh
+ROLE=connected ./scripts/00-preflight.sh
+```
+
+### By hand
+
+```sh
+# --- tooling actually executes (fapolicyd blocks unlisted binaries) ---
+oc version --client
+( umask 0022; oc-mirror version --v2 >/dev/null && echo "oc-mirror OK" )
+
+# --- disk, on the filesystems that actually fill up ---
+df -h ~/ocp-airgap/cache          # layer cache
+df -h ~/ocp-airgap/mirror-out     # archives
+
+# --- credentials ---
+jq -e '.auths["registry.redhat.io"]' ~/ocp-airgap/binaries/pull-secret.json \
+  >/dev/null && echo "pull secret has registry.redhat.io"
+```
+
+On the **disconnected** bastion the equivalent checks belong after the
+transfer has been staged — [06-registry.md](06-registry.md) runs them
+there, including the `podman info` storage check that only makes sense on
+that host.
 
 ---
 

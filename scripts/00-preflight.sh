@@ -12,7 +12,21 @@ load_env
 
 ROLE="${ROLE:-connected}"
 failures=0
-check() { if "$@"; then :; else failures=$((failures+1)); fi; }
+
+# Run a check in a SUBSHELL so an assertion that calls die() records a
+# failure instead of exiting here. This script's value is a complete picture
+# in one run: on a bare bastion the tooling is legitimately absent, and
+# aborting there would hide the disk, credential and hostname checks below.
+# The final tally still exits non-zero.
+check() { if ( "$@" ); then :; else failures=$((failures+1)); fi; }
+
+# Where the tooling comes from differs by side: the connected bastion
+# downloads it, the disconnected one receives it with the first transfer.
+if [[ "${ROLE}" == "connected" ]]; then
+  TOOLING_HINT="Run scripts/10-fetch-binaries.sh (docs/01-prerequisites.md)."
+else
+  TOOLING_HINT="Run scripts/40-stage-transfer.sh (docs/06-registry.md)."
+fi
 
 info "Preflight for role: ${ROLE}"
 
@@ -52,12 +66,12 @@ if command -v fapolicyd >/dev/null 2>&1 && systemctl is-active --quiet fapolicyd
   if command -v oc >/dev/null 2>&1; then
     oc version --client >/dev/null 2>&1 \
       && ok "oc executes under fapolicyd" \
-      || { warn "oc is on PATH but will not execute. Run scripts/10-fetch-binaries.sh."; failures=$((failures+1)); }
+      || { warn "oc is on PATH but will not execute. ${TOOLING_HINT}"; failures=$((failures+1)); }
   fi
   if command -v oc-mirror >/dev/null 2>&1; then
     (umask 0022; oc-mirror version --v2 >/dev/null 2>&1) \
       && ok "oc-mirror executes under fapolicyd" \
-      || { warn "oc-mirror is on PATH but will not execute. Run scripts/10-fetch-binaries.sh."; failures=$((failures+1)); }
+      || { warn "oc-mirror is on PATH but will not execute. ${TOOLING_HINT}"; failures=$((failures+1)); }
   fi
 fi
 
@@ -72,6 +86,8 @@ if [[ "${ROLE}" == "connected" ]]; then
 else
   check require_cmds oc oc-mirror tar
 fi
+command -v oc >/dev/null 2>&1 && command -v oc-mirror >/dev/null 2>&1 \
+  || warn "  -> ${TOOLING_HINT}"
 
 # --- oc-mirror local storage port -----------------------------------------
 
@@ -88,8 +104,13 @@ if [[ "${ROLE}" == "connected" ]]; then
   check require_space "${MIRROR_OUT}" "${MIN_OUTPUT_GB:-150}"
   # Only a problem when /home is actually a separate (and usually small)
   # filesystem, which is a common but not universal STIG layout.
-  cache_mnt=$(df -P "$(dirname "${CACHE_DIR}")" 2>/dev/null | tail -1 | awk '{print $NF}')
-  if [[ "${CACHE_DIR}" == "${HOME}"* && "${cache_mnt}" != "/" ]]; then
+  #
+  # `|| true` is load-bearing: on a bare bastion ${CACHE_DIR} does not exist
+  # yet, df exits non-zero, and under `set -o pipefail` the failed command
+  # substitution would abort this script with no tally -- exactly the
+  # first-pass run documented in docs/01-prerequisites.md.
+  cache_mnt=$(mount_point "${CACHE_DIR}")
+  if [[ -n "${cache_mnt}" && "${CACHE_DIR}" == "${HOME}"* && "${cache_mnt}" != "/" ]]; then
     warn "CACHE_DIR is under \$HOME on a separate filesystem (${cache_mnt}); confirm it is not quota'd."
   fi
 else
@@ -97,11 +118,20 @@ else
   # quayRoot holds only config and certs (~32 KB measured), so checking it
   # for hundreds of GB tells you nothing useful.
   if command -v podman >/dev/null 2>&1; then
-    graph_root=$(podman info --format '{{.Store.GraphRoot}}' 2>/dev/null)
+    # `|| true` plus the shape check below: podman exits non-zero and prints
+    # diagnostics to stdout when it is installed but not usable (no running
+    # machine, broken storage config). Without this the failed substitution
+    # aborts the whole preflight under `set -e`, and a multi-line banner gets
+    # treated as a path.
+    graph_root=$(podman info --format '{{.Store.GraphRoot}}' 2>/dev/null || true)
+    if [[ "${graph_root}" != /* || "${graph_root}" == *$'\n'* ]]; then
+      [[ -n "${graph_root}" ]] && warn "podman did not report a usable storage root; is it configured?"
+      graph_root=""
+    fi
     if [[ -n "${graph_root}" ]]; then
       info "podman storage root: ${graph_root}  <- Quay images land here"
       check require_space "${graph_root}" "${MIN_QUAY_GB:-200}"
-      graph_mnt=$(df -P "${graph_root}" 2>/dev/null | tail -1 | awk '{print $NF}')
+      graph_mnt=$(mount_point "${graph_root}")
       if [[ "${graph_mnt}" == "/" ]]; then
         warn "Quay images will be written to the ROOT filesystem (${graph_mnt})."
         warn "  Filling / takes the host down, not just the registry."

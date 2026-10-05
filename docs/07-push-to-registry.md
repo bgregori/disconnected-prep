@@ -21,25 +21,16 @@ in the push, hours later, that points at the registry rather than the media.
 
 ---
 
-## Install the tooling here too
+## Tooling
 
-If this is the first transfer:
+Already installed — [06-registry.md](06-registry.md#stage-the-transferred-tooling)
+stages the transferred binaries and allowlists them on this host. Confirm
+before starting a run that takes hours:
 
 ```sh
-cd ~/ocp-airgap/imports/2026-10-02_initial/binaries
-sudo tar -xzf openshift-client-linux.tar.gz -C /usr/local/bin oc
-sudo tar -xzf oc-mirror.rhel9.tar.gz -C /usr/local/bin oc-mirror
-sudo chown root:root /usr/local/bin/oc /usr/local/bin/oc-mirror
-sudo chmod 0755 /usr/local/bin/oc /usr/local/bin/oc-mirror
-
-sudo restorecon -v /usr/local/bin/oc /usr/local/bin/oc-mirror
-sudo fapolicyd-cli --file add /usr/local/bin/oc
-sudo fapolicyd-cli --file add /usr/local/bin/oc-mirror
-sudo fapolicyd-cli --update
+oc version --client
+( umask 0022; oc-mirror version --v2 >/dev/null && echo "oc-mirror OK" )
 ```
-
-> ⚠️ **STIG** The allowlist is per-host. Doing this on the connected
-> bastion does nothing for this one.
 
 ---
 
