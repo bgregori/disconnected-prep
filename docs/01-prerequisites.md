@@ -51,14 +51,28 @@ ss -ltn | grep -q ':55000 ' && echo "PORT 55000 IN USE" || echo "port 55000 free
 df -h ~
 
 # --- upstream reachable (connected host only) ---
+# ANY three-digit code passes -- it means the server answered. Only 000 is
+# a failure: no HTTP response at all (DNS, blocked egress, TLS, timeout).
+# Typical healthy output is 404 / 200 / 302 respectively; registry.redhat.io
+# serves nothing at / because its API is under /v2/.
 for r in registry.redhat.io quay.io mirror.openshift.com; do
   printf '%-24s %s\n' "$r" "$(curl -s -o /dev/null -w '%{http_code}' -m 10 https://$r/)"
 done
+
+# Sharper check of the endpoint oc-mirror actually uses -- expect 401,
+# the registry API demanding credentials:
+curl -s -o /dev/null -w 'registry.redhat.io/v2/  %{http_code}\n' \
+  -m 10 https://registry.redhat.io/v2/
 
 # --- registry hostname must be fully qualified ---
 # oc-mirror parses an unqualified docker:// target as a repository name.
 # See "Naming and DNS" below -- resolve it from a cluster node, not here.
 ```
+
+Reachability is not entitlement. These checks say the hosts answer, not
+that your pull secret may pull from them — see
+[Credentials](#credentials), and note that entitlement is only truly
+proven when operator mirroring runs.
 
 **Pass 2** needs the tooling and credentials to exist, so it comes after
 [Install the tooling](#install-the-tooling) at the end of this chapter. The
