@@ -244,6 +244,13 @@ mirror:
   operators:
     - catalog: registry.redhat.io/redhat/redhat-operator-index:v4.21
       packages:
+        # Pairs with `graph: true` above: the graph data is what this
+        # operator serves, and without it the cluster still reports no
+        # available updates. Drop both together, not one.
+        # NOT `cincinnati-operator` -- that is the upstream image name.
+        - name: update-service-operator
+          channels:
+            - name: v1
         - name: compliance-operator
           channels:
             - name: stable
@@ -309,6 +316,26 @@ Resolves the whole configuration without transferring images, and writes:
 
 - `working-dir/dry-run/mapping.txt` — every source→destination mapping
 - `working-dir/dry-run/missing.txt` — what is not already cached
+
+> **A passing dry run looks like a warning.** On a first run the cache is
+> empty, so oc-mirror reports nearly every image as missing and tells you
+> to re-run:
+>
+> ```
+> ⚠️  202/203 images necessary for mirroring are not available in the cache.
+> List of missing images in : mirror-out/working-dir/dry-run/missing.txt.
+> please re-run the mirror to disk process
+> ```
+>
+> That is the expected result, not a failure — `--dry-run` resolves
+> images, it never downloads them, so there is nothing for it to have
+> cached. What matters is that it reached `collecting additional images`
+> and wrote `mapping.txt`. A real failure stops earlier, at
+> `collection error: no related images found` (a wrong package name) or
+> at the release or catalog collection step.
+>
+> The count is the useful number: it tells you how many images the mirror
+> will actually move.
 
 Read `mapping.txt`. Check that every operator you expect is present, that no
 unexpected architectures crept in, and that the release image count looks
