@@ -92,11 +92,18 @@ checks are there, under
 | Disk | cache + archive output | Quay + imports + cache |
 | Role | pull content, build archives | serve content to the cluster |
 
-The registry host is airgapped — "registry host" names what it does, since
-it is the only one of the two that outlives prep. It is not a scratch host:
-it runs the mirror registry the cluster depends on, during install and for
-the life of the cluster. Treat it as production from the start: back it up,
-and do not plan to repurpose it after the evaluation.
+The registry host is airgapped — "registry host" names what it does rather
+than what it lacks, which is the more useful label when what matters
+operationally is which machine serves content and which one fetches it.
+
+**Both hosts are permanent.** The registry host runs the mirror registry
+the cluster depends on, during install and for the life of the cluster. The
+connected bastion is the only way new content enters that registry: every
+z-stream upgrade, added operator, and additional image is pulled and
+archived there, against caches and history that have to survive between
+runs — see [Day-2 delta updates](10-day2-delta.md). Treat both as
+production from the start: back them up, and provision them on the
+assumption that they stay.
 
 > **Provisioning this with the `disconnected-install-sandbox` Ansible?**
 > The names line up with its `sandbox_role` tags: `bastion` is the

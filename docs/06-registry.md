@@ -120,7 +120,7 @@ QUAY_PASSWORD="<at least 8 characters>"
 
 `QUAY_ROOT` still needs to be on durable storage — it holds the CA and the
 TLS keys — but it needs megabytes, not hundreds of gigabytes. Remember this
-host is now infrastructure the cluster depends on, not a scratch box.
+host is infrastructure the cluster depends on for the life of the cluster.
 
 ---
 
