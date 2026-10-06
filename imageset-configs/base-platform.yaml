@@ -29,12 +29,35 @@ archiveSize: 100
         minVersion: ${OCP_VERSION}
         maxVersion: ${OCP_VERSION}
 
-    # Mirror the Cincinnati update graph. Set true only if you intend to run
-    # the OpenShift Update Service in the disconnected environment; it adds a
-    # graph-data image and generates updateService.yaml. Day-2 z-stream
-    # upgrades via `oc adm upgrade --to-image` do NOT require this.
-    graph: false
+    # Mirror the Cincinnati update graph. This adds a graph-data image and
+    # generates updateService.yaml, which the install side applies to run
+    # the OpenShift Update Service in-cluster. With OSUS the cluster offers
+    # recommended updates and upgrades run as `oc adm upgrade --to`.
+    #
+    # Set false only if you have decided not to run OSUS. Upgrades are then
+    # by digest -- `oc adm upgrade --to-image --allow-explicit-upgrade` --
+    # which is supported, but the cluster will show no available updates.
+    # Reversing this later costs another mirror run and transfer, so decide
+    # before the first mirror. See docs/03-plan-your-content.md.
+    graph: true
 # <<< platform
+
+# >>> operators
+    - catalog: registry.redhat.io/redhat/redhat-operator-index:v${OCP_MINOR}
+      packages:
+        # The OpenShift Update Service, which consumes the graph-data image
+        # that `graph: true` above mirrors. Without this operator installed,
+        # updateService.yaml has nothing to act on and the cluster still
+        # shows no available updates -- so the two belong together. Drop
+        # both if you have decided against OSUS.
+        #
+        # The package is `update-service-operator`. `cincinnati-operator` is
+        # the upstream image name and is NOT the OLM package; using it gets
+        # you "no related images found" with no indication why.
+        - name: update-service-operator
+          channels:
+            - name: v1
+# <<< operators
 
 # >>> additionalImages
     # Diagnostics. Mirror these now -- you cannot fetch them later when

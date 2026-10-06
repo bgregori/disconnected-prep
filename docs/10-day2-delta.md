@@ -281,21 +281,27 @@ For completeness, what the install side does with a delta:
 ```sh
 oc apply -f cluster-resources/
 
-# for an upgrade -- by digest, from the local registry
-DIGEST=$(oc adm release info -o 'jsonpath={.digest}{"\n"}' \
-  registry.airgap.local:8443/openshift/release-images:4.21.28-x86_64)
-
-oc adm upgrade --allow-explicit-upgrade \
-  --to-image registry.airgap.local:8443/openshift/release-images@${DIGEST}
+# for an upgrade
+oc adm upgrade --to=4.21.28
 ```
 
-> **Why `--to-image` and not `--to=4.21.28`.** `--to` asks the cluster to
-> pick from its recommended updates, and a disconnected cluster has none
-> unless you run the OpenShift Update Service in-cluster — which requires
-> `graph: true` at mirror time. Without OSUS you name the release payload
-> by digest, and `--allow-explicit-upgrade` is what permits bypassing the
-> graph. See
-> [updating a cluster in a disconnected environment](https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html/disconnected_environments/updating-a-cluster-in-a-disconnected-environment).
+Each delta refreshes the graph-data image, so OSUS learns about the new
+release once `cluster-resources/` is applied. Give it a minute, then
+`oc adm upgrade` should list 4.21.28 as available before you ask for it.
+
+> **Mirrored with `graph: false`?** Then there is no OSUS and no
+> recommended updates, so `--to` has nothing to select from. Name the
+> payload by digest instead:
+>
+> ```sh
+> DIGEST=$(oc adm release info -o 'jsonpath={.digest}{"\n"}' \
+>   registry.airgap.local:8443/openshift/release-images:4.21.28-x86_64)
+>
+> oc adm upgrade --allow-explicit-upgrade \
+>   --to-image registry.airgap.local:8443/openshift/release-images@${DIGEST}
+> ```
+>
+> [Updating a cluster in a disconnected environment](https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html/disconnected_environments/updating-a-cluster-in-a-disconnected-environment)
 
 Applying IDMS/ITMS reboots nodes. On a single-node cluster, so does the
 upgrade. Both are outages; schedule accordingly.

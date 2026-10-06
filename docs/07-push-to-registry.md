@@ -79,7 +79,8 @@ imports/2026-10-02_initial/working-dir/cluster-resources/
 ├── cs-redhat-operator-index-v4-21.yaml    CatalogSource (OLM v0)
 ├── cc-redhat-operator-index-v4-21.yaml    ClusterCatalog (OLM v1)
 ├── signature-configmap.yaml   release signature ConfigMap
-└── signature-configmap.json   the same, as JSON
+├── signature-configmap.json   the same, as JSON
+└── updateService.yaml         OSUS instance (only with `graph: true`)
 ```
 
 > These files are the main artifact prep produces. Everything else is

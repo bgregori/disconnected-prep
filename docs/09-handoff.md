@@ -184,6 +184,16 @@ The last command disables the default catalog sources, which point at
 `registry.redhat.io` and will fail indefinitely in a disconnected
 environment, producing persistent degraded conditions.
 
+`cluster-resources/` includes `updateService.yaml` when the content was
+mirrored with `graph: true`, which is the default. Applying it creates the
+OSUS instance; the cluster then resolves updates against the mirrored
+graph instead of `api.openshift.com`, and `oc adm upgrade` lists what is
+actually available locally. The OpenShift Update Service operator must be
+installed for that resource to be acted on, so it belongs in the operator
+list at mirror time — see
+[03-plan-your-content.md](03-plan-your-content.md). Without it, upgrades
+are by digest; see [10-day2-delta.md](10-day2-delta.md).
+
 > **Applying IDMS/ITMS triggers a rolling restart of every node** as the
 > machine config operator rewrites the CRI-O configuration. On a
 > single-node cluster that is a full API outage of several minutes. Expect

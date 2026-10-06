@@ -29,6 +29,11 @@ Content mirrored: OpenShift **4.21.34** platform + `compliance-operator` +
 `file-integrity-operator` + 3 diagnostic images = **202 images**, then a
 second pass adding the GitOps operator.
 
+> This run predates the `graph: true` default, so it mirrored neither the
+> graph-data image nor `update-service-operator`. Every size and timing
+> figure below is therefore a floor for the current default, not a match
+> for it. The OSUS path itself has not been executed end to end here.
+
 ## Verified
 
 | Step | Result |

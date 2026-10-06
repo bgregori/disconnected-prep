@@ -27,11 +27,13 @@ operator is gigabytes; the cost of omitting one is a week.
 
 - [ ] Exact OpenShift version (pinned z-stream, e.g. `4.21.26`)
 - [ ] Architecture(s)
-- [ ] Will you run the OpenShift Update Service in-cluster? → `graph: true`
-      → *decides how you upgrade later: with OSUS the cluster offers
-      recommended updates and `oc adm upgrade --to` works; without it you
-      upgrade by digest with `--to-image --allow-explicit-upgrade`. Both
-      are supported. Adding the graph later means another mirror run.*
+- [ ] Running **without** the OpenShift Update Service? → `graph: false`
+      → *the default is `graph: true`, which mirrors the update graph so
+      OSUS can run in-cluster and the cluster offers recommended updates.
+      Turning it off means upgrading by digest with
+      `--to-image --allow-explicit-upgrade` — supported, but the cluster
+      will list no available updates. Reversing the choice later costs
+      another mirror run and another trip across the airgap.*
 
 **Workload platform**
 
@@ -149,12 +151,20 @@ frequent source of silent mistakes. Verified against the v4.21 catalog:
 | Compliance | `compliance-operator` | `stable` |
 | File Integrity | `file-integrity-operator` | `stable` |
 | **OADP / backup** | **`redhat-oadp-operator`** | `stable` |
+| **Update Service (OSUS)** | **`update-service-operator`** | `v1` |
 | GitOps | `openshift-gitops-operator` | `latest` |
 | ACS | `rhacs-operator` | `stable` |
 
 OADP is the cautionary one: the package is `redhat-oadp-operator`, but its
 bundles are named `oadp-operator.vX.Y.Z`, so `oadp-operator` looks right
 and appears in plenty of guides — including the one this repo came from.
+
+OSUS is the same shape of trap: `cincinnati-operator` is the upstream
+project and the name of the bundle image in the Red Hat catalog, but the
+OLM package is `update-service-operator`. It is in `base-platform.yaml`
+already, because `graph: true` mirrors the graph data this operator exists
+to serve — mirroring one without the other leaves the cluster still
+reporting no available updates.
 
 Run `./scripts/13-catalog.sh --check` rather than trusting any table,
 including this one. A wrong name is reported by oc-mirror only as
@@ -226,8 +236,10 @@ mirror:
         type: ocp
         minVersion: 4.21.34
         maxVersion: 4.21.34
-    # true only if you will run the OpenShift Update Service in-cluster
-    graph: false
+    # Mirrors the update graph so the OpenShift Update Service can run
+    # in-cluster. false means upgrading by digest instead -- see the
+    # planning checklist above before changing it.
+    graph: true
 
   operators:
     - catalog: registry.redhat.io/redhat/redhat-operator-index:v4.21
