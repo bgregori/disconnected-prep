@@ -44,7 +44,7 @@ umask 0022 && oc-mirror --v2 \
   --from file:///home/user/ocp-airgap/imports/2026-10-02_initial \
   --cache-dir ./cache \
   --authfile binaries/mirror-pull-secret.json \
-  docker://bastion.airgap.local:8443
+  docker://registry.airgap.local:8443
 ```
 
 This is **disk-to-mirror (d2m)**. Points to note:
@@ -97,11 +97,11 @@ Missing step 1 is the single most common disconnected-install failure.
 
 ```sh
 curl -s -u init:<password> \
-  https://bastion.airgap.local:8443/v2/_catalog | python3 -m json.tool | head -40
+  https://registry.airgap.local:8443/v2/_catalog | python3 -m json.tool | head -40
 
 oc adm release info \
   --authfile ~/ocp-airgap/binaries/mirror-pull-secret.json \
-  bastion.airgap.local:8443/openshift/release-images:4.21.26-x86_64
+  registry.airgap.local:8443/openshift/release-images:4.21.26-x86_64
 ```
 
 `oc-mirror` v2 publishes the release payload at

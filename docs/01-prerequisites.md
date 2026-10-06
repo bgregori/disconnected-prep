@@ -242,7 +242,7 @@ later means re-pushing and re-applying cluster config.
 Requirements:
 
 - **Fully qualified.** `oc-mirror` parses an unqualified `docker://` target
-  as a repository name, not a hostname. `bastion` fails; `bastion.airgap.local`
+  as a repository name, not a hostname. `registry` fails; `registry.airgap.local`
   works.
 - **Resolvable from the cluster nodes**, not just from the registry host. An
   `/etc/hosts` entry on the registry host is the classic trap: mirroring succeeds
@@ -252,8 +252,8 @@ Requirements:
 Verify from somewhere that is not the registry host, before you mirror:
 
 ```sh
-dig +short bastion.airgap.local
-curl -I https://bastion.airgap.local:8443/v2/
+dig +short registry.airgap.local
+curl -I https://registry.airgap.local:8443/v2/
 ```
 
 ---

@@ -16,7 +16,7 @@ possibly a scheduled transfer window.
 ## Extract the FIPS installer
 
 ```sh
-export REG=bastion.airgap.local:8443
+export REG=registry.airgap.local:8443
 export VER=4.21.26
 export IDMS=~/ocp-airgap/imports/2026-10-02_initial/working-dir/cluster-resources/idms-oc-mirror.yaml
 
@@ -84,8 +84,8 @@ cluster does not live there.
 
 ```sh
 # from a host on the node network
-dig +short bastion.airgap.local
-curl -I https://bastion.airgap.local:8443/v2/
+dig +short registry.airgap.local
+curl -I https://registry.airgap.local:8443/v2/
 ```
 
 This is the most common thing that passes on the registry host and fails for the
@@ -96,7 +96,7 @@ cluster.
 ```sh
 oc image info --registry-config ~/ocp-airgap/binaries/mirror-pull-secret.json \
   --filter-by-os linux/amd64 \
-  bastion.airgap.local:8443/redhat/redhat-operator-index:v4.21
+  registry.airgap.local:8443/redhat/redhat-operator-index:v4.21
 ```
 
 ### Spot-check an additional image
@@ -110,7 +110,7 @@ for img in \
   container-native-virtualization/virtio-win:latest ; do
   echo -n "${img}: "
   oc image info --registry-config ~/ocp-airgap/binaries/mirror-pull-secret.json \
-    --filter-by-os linux/amd64 "bastion.airgap.local:8443/${img}" >/dev/null 2>&1 \
+    --filter-by-os linux/amd64 "registry.airgap.local:8443/${img}" >/dev/null 2>&1 \
     && echo OK || echo MISSING
 done
 ```

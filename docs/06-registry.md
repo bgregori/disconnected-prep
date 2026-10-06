@@ -66,7 +66,7 @@ not install it. The next section queries it before Quay exists.
 Set in `config/prep.env`:
 
 ```sh
-REGISTRY_HOST="bastion.airgap.local"   # FQDN, resolvable from cluster nodes
+REGISTRY_HOST="registry.airgap.local"  # FQDN, resolvable from cluster nodes
 REGISTRY_PORT="8443"
 QUAY_ROOT="/opt/quay"                  # on a partition with 500 GB+
 QUAY_USER="init"
@@ -134,7 +134,7 @@ sudo firewall-cmd --add-port 8443/tcp --permanent
 sudo firewall-cmd --reload
 
 umask 0022 && ./mirror-registry install \
-  --quayHostname bastion.airgap.local \
+  --quayHostname registry.airgap.local \
   --quayRoot /opt/quay \
   --initUser init \
   --initPassword '<password>'
@@ -199,7 +199,7 @@ sudo update-ca-trust
 Verify — this must succeed without `-k`:
 
 ```sh
-curl -I https://bastion.airgap.local:8443/v2/
+curl -I https://registry.airgap.local:8443/v2/
 ```
 
 > Do not reach for `--insecure` or `--dest-tls-verify=false`. It hides a
@@ -218,13 +218,13 @@ it.
 ```sh
 QUAY_AUTH=$(printf 'init:%s' '<password>' | base64 -w0)
 cat > ~/ocp-airgap/binaries/mirror-pull-secret.json <<EOF
-{"auths":{"bastion.airgap.local:8443":{"auth":"${QUAY_AUTH}"}}}
+{"auths":{"registry.airgap.local:8443":{"auth":"${QUAY_AUTH}"}}}
 EOF
 chmod 600 ~/ocp-airgap/binaries/mirror-pull-secret.json
 ```
 
 The key must exactly match the `docker://` target you push to, port
-included. `bastion.airgap.local` and `bastion.airgap.local:8443` are
+included. `registry.airgap.local` and `registry.airgap.local:8443` are
 different keys and a mismatch produces an authentication failure that looks
 like a credentials problem.
 
@@ -234,7 +234,7 @@ Verify:
 printf '%s' '<password>' | podman login \
   --username init --password-stdin \
   --authfile ~/ocp-airgap/binaries/mirror-pull-secret.json \
-  bastion.airgap.local:8443
+  registry.airgap.local:8443
 ```
 
 Pass `--username` and `--password-stdin` explicitly. Without them `podman
@@ -254,7 +254,7 @@ hang as `reading username: EOF` rather than as an auth problem.
 >
 > ```sh
 > until curl -s -o /dev/null -w '%{http_code}' \
->         https://bastion.airgap.local:8443/health/instance | grep -q 200; do
+>         https://registry.airgap.local:8443/health/instance | grep -q 200; do
 >   sleep 5
 > done
 > ```
@@ -273,8 +273,8 @@ are what matter.
 
 ```sh
 # from a host on the node network -- NOT the registry host
-dig +short bastion.airgap.local
-curl -I https://bastion.airgap.local:8443/v2/
+dig +short registry.airgap.local
+curl -I https://registry.airgap.local:8443/v2/
 ```
 
 If this fails, fix it now. The symptom later is an agent-based install that
@@ -286,7 +286,7 @@ hangs at bootstrap with no obvious cause.
 
 | | |
 |---|---|
-| Web UI | `https://bastion.airgap.local:8443` |
+| Web UI | `https://registry.airgap.local:8443` |
 | Service | `systemctl --user status quay-app` |
 | Logs | `podman logs quay-app` |
 | Storage | `du -sh /opt/quay` |

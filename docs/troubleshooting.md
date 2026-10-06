@@ -156,7 +156,7 @@ certificate flag.
 ```sh
 sudo cp /opt/quay/quay-rootCA/rootCA.pem /etc/pki/ca-trust/source/anchors/
 sudo update-ca-trust
-curl -I https://bastion.airgap.local:8443/v2/      # must work without -k
+curl -I https://registry.airgap.local:8443/v2/      # must work without -k
 ```
 
 Avoid `--dest-tls-verify=false`; it defers the problem to the cluster.
@@ -168,10 +168,10 @@ the port.
 
 ```sh
 python3 -m json.tool < mirror-pull-secret.json
-podman login --authfile mirror-pull-secret.json bastion.airgap.local:8443
+podman login --authfile mirror-pull-secret.json registry.airgap.local:8443
 ```
 
-`bastion.airgap.local` and `bastion.airgap.local:8443` are different keys.
+`registry.airgap.local` and `registry.airgap.local:8443` are different keys.
 
 ### Destination parsed as a repository, not a registry
 
