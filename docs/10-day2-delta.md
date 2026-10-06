@@ -271,6 +271,11 @@ oc image info --registry-config binaries/mirror-pull-secret.json \
 
 ## Cluster side (not this repo)
 
+Steps 1–7 above are online: mirroring, transfer and push all run beside a
+live cluster, which keeps serving from the registry throughout and sees
+nothing new until the manifests below are applied. The reboots are the only
+part that disrupts anything.
+
 For completeness, what the install side does with a delta:
 
 ```sh

@@ -174,10 +174,18 @@ deduplicated — run end to end on RHEL 9.6:
 
 Wall clock: 14m53s to mirror (7m pull, 8m tarball), 27m to push.
 
+There is no maintenance window to plan around. These numbers are from a
+first mirror, where no cluster exists yet and nothing is serving workloads.
+Later delta runs against a built cluster are online too, since the pipeline
+only adds content to the registry — see
+[Day-2 delta updates](10-day2-delta.md). The timings are for scheduling the
+run itself.
+
 Three things worth internalising:
 
 - The archive is *larger* than the cache, and building it took as long as
-  the download. Both matter for a maintenance window.
+  the download. Estimating a run from download time alone halves the real
+  figure.
 - The **import directory is the biggest single consumer** on the
   disconnected side, because disk-to-mirror writes its `working-dir/` there
   alongside the archive.
