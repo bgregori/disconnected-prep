@@ -162,8 +162,14 @@ bisecting.
 
 ## 3. Compose the configuration
 
-Profiles live in `imageset-configs/`. `base-platform.yaml` is always
-included; each profile adds operators and images for one capability.
+> Working without this repo? Skip to
+> [writing it by hand](#writing-it-by-hand) — the composer only
+> concatenates fragments, and the finished file is short.
+
+Profiles live in `imageset-configs/`, **in your clone of this repository**
+— not in `~/ocp-airgap/`, which holds only the artifacts of a run.
+`base-platform.yaml` is always included; each profile adds operators and
+images for one capability.
 
 ```sh
 ./scripts/12-compose-imageset.sh                 # list available profiles
@@ -186,7 +192,16 @@ the composer overwrites it, so put changes you want to keep into
 You do not need the composer — it only concatenates fragments. A complete,
 working configuration is short. This is the one actually used for the
 validated run in [VALIDATION.md](../VALIDATION.md), with the operator list
-to edit:
+to edit.
+
+Write it to `~/ocp-airgap/config/imageset-config.yaml` — the `config/`
+directory created with the rest of the prep tree in
+[01-prerequisites.md](01-prerequisites.md#install-the-tooling). Every later
+chapter refers to this file as `${IMAGESET_CONFIG}`.
+
+```sh
+${EDITOR} ~/ocp-airgap/config/imageset-config.yaml
+```
 
 ```yaml
 kind: ImageSetConfiguration
