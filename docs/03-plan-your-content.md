@@ -28,6 +28,10 @@ operator is gigabytes; the cost of omitting one is a week.
 - [ ] Exact OpenShift version (pinned z-stream, e.g. `4.21.26`)
 - [ ] Architecture(s)
 - [ ] Will you run the OpenShift Update Service in-cluster? → `graph: true`
+      → *decides how you upgrade later: with OSUS the cluster offers
+      recommended updates and `oc adm upgrade --to` works; without it you
+      upgrade by digest with `--to-image --allow-explicit-upgrade`. Both
+      are supported. Adding the graph later means another mirror run.*
 
 **Workload platform**
 
