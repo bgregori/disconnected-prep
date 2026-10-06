@@ -235,9 +235,11 @@ unusual.
 ## Credentials
 
 A Red Hat pull secret with entitlements for the content you intend to
-mirror. It must contain a `registry.redhat.io` key: that entitlement is
-separate from `quay.io`, so a secret can succeed on the release payload and
-still fail partway through operator mirroring with authentication errors.
+mirror, from
+<https://console.redhat.com/openshift/downloads#tool-pull-secret>. It must
+contain a `registry.redhat.io` key: that entitlement is separate from
+`quay.io`, so a secret can succeed on the release payload and still fail
+partway through operator mirroring with authentication errors.
 
 Confirm the entitlement now, on the account you will use. You put the file
 in place under [Install the tooling](#install-the-tooling) below, and check
@@ -370,8 +372,7 @@ sudo chmod 0755 /usr/local/bin/oc /usr/local/bin/oc-mirror
 ### Place the pull secret
 
 Download it from
-<https://console.redhat.com/openshift/downloads> (bottom of the downloads
-list), then:
+<https://console.redhat.com/openshift/downloads#tool-pull-secret>, then:
 
 ```sh
 cp ~/Downloads/pull-secret.json ~/ocp-airgap/binaries/pull-secret.json

@@ -68,6 +68,7 @@ cat >&2 <<EOF
 
 Next: place your Red Hat pull secret at
     ${RH_PULL_SECRET}
-Download it from https://console.redhat.com/openshift/downloads
-(bottom of the downloads list), then run ./scripts/00-preflight.sh
+Download it from
+    https://console.redhat.com/openshift/downloads#tool-pull-secret
+then run ./scripts/00-preflight.sh
 EOF
