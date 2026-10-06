@@ -45,7 +45,12 @@ if [[ -r /proc/sys/crypto/fips_enabled ]]; then
   if [[ "$(cat /proc/sys/crypto/fips_enabled)" == "1" ]]; then
     ok "Host FIPS mode: enabled"
   else
-    info "Host FIPS mode: disabled (this is fine -- cluster FIPS is set in install-config.yaml)"
+    # Mirroring genuinely does not care. The ISO-generating host does:
+    # Red Hat requires openshift-install-fips to run from a RHEL 9 host in
+    # FIPS mode, so do not report this as unconditionally fine.
+    info "Host FIPS mode: disabled. Fine for mirroring -- cluster FIPS is set"
+    info "  in install-config.yaml. But whichever host runs openshift-install-fips"
+    info "  to generate the ISO must itself be in FIPS mode; see docs/02."
   fi
 fi
 

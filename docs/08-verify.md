@@ -38,6 +38,15 @@ cluster with `fips: true` requires the FIPS-validated installer binary. The
 generic installer from `mirror.openshift.com` will not do, and the mismatch
 is not caught until late.
 
+> ⚠️ **The binary is only half of it.** Red Hat also requires
+> `openshift-install-fips` to be *run* from a RHEL 9 host that is itself in
+> FIPS mode. Extracting it here needs no such thing — `oc adm release
+> extract` just copies a file — but whichever host generates the agent ISO
+> must report `1` from `/proc/sys/crypto/fips_enabled`. If that is not this
+> host, it is a fact the install side needs; see
+> [09-handoff.md](09-handoff.md) and
+> [02-fips-stig-rhel9.md](02-fips-stig-rhel9.md).
+
 **`--idms-file` must be an absolute path.** `oc` resolves it relative to the
 current directory. A relative path that happens to be wrong produces an
 error about reaching the upstream registry, which sends you looking in

@@ -13,18 +13,41 @@ debugging something that "should obviously work", start here.
 
 Two separate things get conflated constantly:
 
-**Host FIPS mode** — whether the prep host itself boots with
-`fips=1`. It affects which crypto the mirroring tools may use. It is *not*
-required for mirroring, and not required to produce a FIPS cluster.
+**Host FIPS mode** — whether the prep host itself boots with `fips=1`. It
+affects which crypto the mirroring tools may use. It is *not* required for
+mirroring: you can pull, archive, transfer and push from a non-FIPS host.
 
 **Cluster FIPS mode** — `fips: true` in `install-config.yaml`. This is what
 the accreditation actually cares about. It is set at install time and cannot
 be changed afterwards.
 
-You can mirror from a non-FIPS host to build a FIPS cluster. The one
-genuine coupling is the installer binary: a cluster with `fips: true`
-requires `openshift-install-fips`, extracted from the release payload. See
-[08-verify.md](08-verify.md).
+The two are independent for everything in this repo except the last step.
+A `fips: true` cluster has **two** requirements, and both are easy to miss
+because neither fails loudly:
+
+1. **A FIPS-capable installer binary** — `openshift-install-fips`,
+   extracted from the release payload. The generic `openshift-install` will
+   not do. See [08-verify.md](08-verify.md).
+2. **A host in FIPS mode to run it on.** Red Hat requires the installation
+   program to run from a RHEL 9 computer configured to operate in FIPS
+   mode. Generating the agent ISO on a host with `fips_enabled=0` is not a
+   supported configuration for a FIPS cluster, whichever binary you used.
+
+Only the second is a *host* requirement, and it applies to whichever
+machine runs `openshift-install-fips` — not to the connected bastion, and
+not to the registry host unless you generate the ISO there. Extracting the
+binary is just `oc adm release extract` and needs no FIPS host.
+
+```sh
+cat /proc/sys/crypto/fips_enabled   # must be 1 on the ISO-generating host
+```
+
+> This changed across releases: 4.11–4.14 required a RHEL **8** host, and
+> explicitly could not be done from RHEL 9. From 4.16 it is RHEL 9 plus the
+> `-fips` binary. Check the requirement for the version you are installing
+> rather than carrying an older runbook forward.
+>
+> <https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html/installation_overview/installing-fips>
 
 ---
 

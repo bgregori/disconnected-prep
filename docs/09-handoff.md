@@ -28,7 +28,7 @@ way that looks like an install problem but is not.
 | `pull-secret.json` | the `pullSecret` value in `install-config.yaml` |
 | `certs/rootCA.pem` | registry CA, also needed by anything else pulling from the mirror |
 | `cluster-resources/` | applied **after** the install completes |
-| `bin/openshift-install-fips` | ISO generation; required when `fips: true` |
+| `bin/openshift-install-fips` | ISO generation; required when `fips: true`, and must be **run on a host that is itself in FIPS mode** |
 | `imageset-config.yaml` | the record of what exists; required for every Day-2 update |
 
 ### Facts

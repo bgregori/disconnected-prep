@@ -45,6 +45,10 @@ say so.
 - [ ] **`additionalTrustBundle`** pasted from the fragment, with
       `additionalTrustBundlePolicy: Always`
 - [ ] **`openshift-install-fips`** used, not the generic installer
+- [ ] **The host generating the ISO is itself in FIPS mode**
+      (`cat /proc/sys/crypto/fips_enabled` → `1`)
+      → *required by Red Hat for a `fips: true` cluster, and independent of
+      which binary you used*
 - [ ] Registry hostname **resolves from the node network** — verified, not
       assumed
 
