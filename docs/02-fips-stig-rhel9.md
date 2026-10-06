@@ -42,12 +42,8 @@ binary is just `oc adm release extract` and needs no FIPS host.
 cat /proc/sys/crypto/fips_enabled   # must be 1 on the ISO-generating host
 ```
 
-> This changed across releases: 4.11–4.14 required a RHEL **8** host, and
-> explicitly could not be done from RHEL 9. From 4.16 it is RHEL 9 plus the
-> `-fips` binary. Check the requirement for the version you are installing
-> rather than carrying an older runbook forward.
->
-> <https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html/installation_overview/installing-fips>
+Red Hat's statement of the requirement:
+<https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html/installation_overview/installing-fips>
 
 ---
 
