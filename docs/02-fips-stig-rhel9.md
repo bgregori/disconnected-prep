@@ -371,20 +371,18 @@ system (V-257848), and the scap-security-guide RHEL 9 kickstart gives it
 
 **Fix**
 
-Set `MIRROR_TMPDIR` in `config/prep.env`. `scripts/20-mirror-to-disk.sh`
-and `scripts/60-push-to-registry.sh` export it as `TMPDIR`:
-
-```sh
-MIRROR_TMPDIR="/data/tmp"
-```
-
-By hand:
+Point `TMPDIR` at a filesystem with room, in the shell that runs
+oc-mirror. It is separate from `--cache-dir`; set both:
 
 ```sh
 mkdir -p /data/tmp
 export TMPDIR=/data/tmp
 oc-mirror --v2 --cache-dir /data/oc-mirror-cache ...
 ```
+
+To make it durable, put the `export` in the same place you keep the rest
+of the run's environment — a profile snippet, or the tmux session you
+start the mirror in.
 
 Three things that catch people:
 
@@ -396,6 +394,11 @@ Three things that catch people:
 - **Setting `image_copy_tmp_dir` in `containers.conf` is not sufficient** —
   there is a long-standing bug where `/var/tmp` is still used. `TMPDIR` is
   the knob that works.
+
+> Using this repo's scripts? Set `MIRROR_TMPDIR` in `config/prep.env`.
+> `20-mirror-to-disk.sh` and `60-push-to-registry.sh` export it as
+> `TMPDIR` and probe that the target will execute, which is the first
+> bullet above.
 
 **Sources**
 
@@ -463,7 +466,7 @@ chmod 600 "${RH_PULL_SECRET}" "${MIRROR_PULL_SECRET}"
 | `Detected bad umask 0077` from oc-mirror | umask 0077 | `umask 0022` in that shell |
 | `can't open file ...: Operation not permitted` on a script | fapolicyd `%languages` rule | pipe via stdin, or `fapolicyd-cli --file add` |
 | `fork/exec /tmp/oc-mirror-*: operation not permitted` | fapolicyd; the v1 shim unpacks to /tmp | use `scripts/13-catalog.sh` instead of `oc-mirror list --v1` |
-| `no space left on device` naming `/var/tmp` | `TMPDIR` defaults to the 5 GB STIG partition | set `MIRROR_TMPDIR` in `config/prep.env` |
+| `no space left on device` naming `/var/tmp` | `TMPDIR` defaults to the 5 GB STIG partition | `export TMPDIR=` a roomy, exec-capable path |
 | `Permission denied`, AVC in audit log | SELinux label | `restorecon -v` |
 | Quay crash-loops after a clean install | umask 0077 | `umask 0022` + systemd drop-in |
 | Quay gone after logout | no linger | `loginctl enable-linger` |

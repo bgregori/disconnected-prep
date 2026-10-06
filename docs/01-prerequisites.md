@@ -208,8 +208,15 @@ unusual.
 > **`/var/tmp` also grows during the push.** oc-mirror and the
 > containers/image library it embeds stage temporary blobs in `TMPDIR`,
 > which defaults to `/var/tmp` — a separate 5 GB filesystem on a STIG'd
-> build. Set `MIRROR_TMPDIR` in `config/prep.env` to somewhere with room.
-> See [`$TMPDIR` defaults to a STIG partition](02-fips-stig-rhel9.md#tmpdir-defaults-to-a-stig-partition).
+> build. Export it to somewhere with room before mirroring, on a
+> filesystem that permits execution:
+>
+> ```sh
+> mkdir -p /data/tmp && export TMPDIR=/data/tmp
+> ```
+>
+> With the scripts, set `MIRROR_TMPDIR` in `config/prep.env` instead. See
+> [`$TMPDIR` defaults to a STIG partition](02-fips-stig-rhel9.md#tmpdir-defaults-to-a-stig-partition).
 
 ---
 
