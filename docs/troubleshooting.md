@@ -29,9 +29,16 @@ oc-mirror --v2 -c config.yaml --dry-run file://./mirror-out
 fapolicyd. Permissions and ownership look fine; execution is denied anyway.
 
 ```sh
+sudo restorecon -v /usr/local/bin/oc /usr/local/bin/oc-mirror
+sudo fapolicyd-cli --file add /usr/local/bin/oc
 sudo fapolicyd-cli --file add /usr/local/bin/oc-mirror
 sudo fapolicyd-cli --update
 ```
+
+Relabel first: it changes the file, so trusting it beforehand achieves
+nothing. The trust database is per-host — doing this on one host does not
+cover the other. Background in
+[02-fips-stig-rhel9.md](02-fips-stig-rhel9.md#fapolicyd-blocks-binaries-you-just-installed).
 
 ### `Permission denied`, AVC denials in the audit log
 

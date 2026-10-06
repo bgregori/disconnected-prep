@@ -74,6 +74,15 @@ sudo fapolicyd-cli --update
 
 `--update` is required; the first two commands only stage changes.
 
+Installing the tooling already runs this — on the connected bastion in
+[01-prerequisites.md](01-prerequisites.md#install-the-tooling), and again
+on the registry host in [06-registry.md](06-registry.md), because the
+trust database is per-host. You are here because it did not take, or
+because you have added a binary since. Pair it with
+[SELinux mislabels extracted binaries](#selinux-mislabels-extracted-binaries):
+both bite the same freshly extracted file, and relabelling after
+allowlisting undoes the trust.
+
 Verify:
 
 ```sh
