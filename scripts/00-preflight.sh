@@ -148,6 +148,47 @@ else
   check require_space "${CACHE_DIR}"   "${MIN_CACHE_GB:-150}"
 fi
 
+# --- temp space ------------------------------------------------------------
+#
+# Two different defaults, both small under STIG:
+#   - image blobs      -> containers/image image_copy_tmp_dir, i.e. /var/tmp
+#   - unpacked helper  -> Go's os.TempDir(), i.e. /tmp
+# Setting TMPDIR redirects both. It is a per-shell export that does not
+# survive the reconnect these multi-hour runs invite, so report what THIS
+# shell would actually use rather than assuming it was set earlier.
+
+tmp_blobs="${MIRROR_TMPDIR:-${TMPDIR:-}}"
+tmp_exec="${tmp_blobs}"
+if [[ -n "${tmp_blobs}" ]]; then
+  info "TMPDIR: ${tmp_blobs}"
+else
+  tmp_blobs="/var/tmp"
+  tmp_exec="/tmp"
+  warn "TMPDIR is not set. oc-mirror will stage blobs in /var/tmp and unpack"
+  warn "  its helper into /tmp -- separate 5 GB noexec filesystems under STIG."
+  warn "  -> export TMPDIR durably, or set MIRROR_TMPDIR in config/prep.env."
+  warn "     See docs/02-fips-stig-rhel9.md"
+fi
+check require_space "${tmp_blobs}" "${MIN_TMP_GB:-20}"
+
+# A noexec mount or a fapolicyd denial turns the space fix into an exec
+# failure partway through the run. Probe it now, while it is cheap to read.
+probe="${tmp_exec}/.preflight-exec-probe.$$"
+if printf '#!/bin/sh\nexit 0\n' > "${probe}" 2>/dev/null; then
+  chmod 0700 "${probe}" 2>/dev/null || true
+  if "${probe}" 2>/dev/null; then
+    ok "${tmp_exec}: executes an unpacked binary"
+  else
+    warn "${tmp_exec} will not execute a test binary (noexec mount, or fapolicyd)."
+    warn "  oc-mirror unpacks a helper there and runs it; it will fail on exec."
+    failures=$((failures+1))
+  fi
+  rm -f "${probe}"
+else
+  warn "${tmp_exec} is not writable."
+  failures=$((failures+1))
+fi
+
 # --- credentials -----------------------------------------------------------
 
 if [[ "${ROLE}" == "connected" ]]; then

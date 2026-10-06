@@ -380,9 +380,25 @@ export TMPDIR=/data/tmp
 oc-mirror --v2 --cache-dir /data/oc-mirror-cache ...
 ```
 
-To make it durable, put the `export` in the same place you keep the rest
-of the run's environment — a profile snippet, or the tmux session you
-start the mirror in.
+**Make it durable.** That `export` dies with the shell, and these are
+multi-hour runs you will reconnect to after a dropped session — the one
+moment you are least likely to remember re-exporting it. On a host
+dedicated to this workflow, set it for every login shell:
+
+```sh
+echo 'export TMPDIR=/data/tmp' | sudo tee /etc/profile.d/oc-mirror-tmpdir.sh
+sudo chmod 0644 /etc/profile.d/oc-mirror-tmpdir.sh
+sudo restorecon -v /etc/profile.d/oc-mirror-tmpdir.sh
+```
+
+To keep it to one account instead, append the same line to
+`~/.bash_profile`. Either way, `00-preflight.sh` prints the `TMPDIR` the
+current shell would actually use and fails if it is small or `noexec`, so
+a lost export surfaces before the run rather than hours into it.
+
+> An already-running `tmux` server keeps the environment it was started
+> with. After adding the drop-in, start a new session — or `tmux kill-server`
+> first — or the mirror still runs with the old `TMPDIR`.
 
 Three things that catch people:
 
