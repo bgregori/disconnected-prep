@@ -57,6 +57,7 @@ to your login session scope and dies with it.
 cd ~/ocp-airgap
 
 umask 0022
+export TMPDIR=/data/tmp
 oc-mirror --v2 \
   --config config/imageset-config.yaml \
   --cache-dir ./cache \
@@ -68,6 +69,14 @@ oc-mirror --v2 \
 > of `0077`, `oc-mirror` warns `Detected bad umask 0077 (oc-mirror requires a
 > umask of 0022)` and writes cache and archive content other accounts cannot
 > read. This applies to the connected side too, not only the registry push.
+
+> ⚠️ **STIG** `TMPDIR` is load-bearing for the same reason the `umask` is —
+> both are per-shell settings this run depends on. Unset, oc-mirror stages
+> blobs in `/var/tmp`, which STIG gives its own 5 GB filesystem, and the run
+> dies partway through on `no space left on device`. The target needs room
+> and must permit execution. Set it durably rather than retyping it after
+> every reconnect:
+> [`$TMPDIR` defaults to a STIG partition](02-fips-stig-rhel9.md#tmpdir-defaults-to-a-stig-partition).
 
 This is **mirror-to-disk (m2d)**. The workflow is selected by argument
 shape, not by a flag:

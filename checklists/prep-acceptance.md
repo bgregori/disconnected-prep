@@ -25,6 +25,8 @@ Environment: ______________________  Date: ____________  By: ____________
 - [ ] `ROLE=connected ./scripts/00-preflight.sh` passes
 - [ ] Red Hat pull secret present, contains `registry.redhat.io`
 - [ ] Cache is **not** under `$HOME` on a small partition
+- [ ] `TMPDIR` set **durably** off `/var/tmp` — room to spare, execution
+      permitted, and surviving a reconnect rather than exported by hand
 - [ ] Dry run reviewed — no missing or unexpected content
 - [ ] Mirror completed without error
 - [ ] `mirror-out/working-dir/.history/` exists and is protected
@@ -42,6 +44,7 @@ Environment: ______________________  Date: ____________  By: ____________
       (`df -h "$(podman info --format '{{.Store.GraphRoot}}')"`), not on `--quayRoot`
 - [ ] `ROLE=disconnected ./scripts/00-preflight.sh` passes
 - [ ] `oc` / `oc-mirror` execute (SELinux relabelled, fapolicyd allowlisted)
+- [ ] `TMPDIR` set **durably** off `/var/tmp` — the push is where it bites
 - [ ] Registry installed and running
 - [ ] `loginctl enable-linger` set — survives logout
 - [ ] Permission drop-in in place, paths match the real `QUAY_ROOT`

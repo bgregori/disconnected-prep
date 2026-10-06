@@ -39,6 +39,7 @@ oc version --client
 ```sh
 cd ~/ocp-airgap
 
+export TMPDIR=/data/tmp
 umask 0022 && oc-mirror --v2 \
   --config imports/2026-10-02_initial/imageset-config.yaml \
   --from file:///home/user/ocp-airgap/imports/2026-10-02_initial \
@@ -57,6 +58,10 @@ This is **disk-to-mirror (d2m)**. Points to note:
 - **`--cache-dir` needs real space here too**, separate from `QUAY_ROOT`.
 - **`umask 0022`** so the generated manifests are readable by whoever
   applies them later.
+- **`TMPDIR`** because the push is where this bites hardest: unset, blobs
+  stage in `/var/tmp`, a separate 5 GB filesystem under STIG. Set it
+  durably rather than per-shell —
+  [`$TMPDIR` defaults to a STIG partition](02-fips-stig-rhel9.md#tmpdir-defaults-to-a-stig-partition).
 
 Expect hours. Use tmux.
 

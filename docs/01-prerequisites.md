@@ -50,6 +50,18 @@ ss -ltn | grep -q ':55000 ' && echo "PORT 55000 IN USE" || echo "port 55000 free
 # ~/ocp-airgap does not exist yet, so check the filesystem it will land on.
 df -h ~
 
+# --- temp space ---
+# Unset, oc-mirror stages blobs in /var/tmp and unpacks its helper into
+# /tmp -- two separate 5 GB noexec filesystems on a STIG build. See docs/02.
+echo "TMPDIR=${TMPDIR:-unset}"
+df -h "${TMPDIR:-/var/tmp}"
+
+# The helper is executed, not just written. This must print "exec OK".
+probe="${TMPDIR:-/tmp}/.probe.$$"
+printf '#!/bin/sh\nexit 0\n' > "${probe}" && chmod 0700 "${probe}"
+"${probe}" && echo "exec OK" || echo "EXEC BLOCKED -- noexec mount, or fapolicyd"
+rm -f "${probe}"
+
 # --- upstream reachable (connected host only) ---
 # ANY three-digit code passes -- it means the server answered. Only 000 is
 # a failure: no HTTP response at all (DNS, blocked egress, TLS, timeout).
