@@ -55,6 +55,7 @@ fi
 
 require_space "${CACHE_DIR}" "${MIN_CACHE_GB:-150}"
 run mkdir -p "${CACHE_DIR}"
+use_mirror_tmpdir
 
 extra=()
 [[ "${PARALLEL_IMAGES:-}" ]] && extra+=(--parallel-images "${PARALLEL_IMAGES}")

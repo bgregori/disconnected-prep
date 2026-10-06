@@ -343,6 +343,70 @@ The cache holds roughly the full uncompressed content set, and it is
 
 ---
 
+## $TMPDIR defaults to a STIG partition
+
+**Symptom**
+
+The push fails with `no space left on device` naming a path under
+`/var/tmp`, while `CACHE_DIR`, the import directory and the podman
+graphroot all have room.
+
+**Cause**
+
+Two different consumers, same directory:
+
+- `oc-mirror` unpacks its v2 helper binary into the system temp directory
+  and executes it from there.
+- The embedded containers/image library stages temporary image content in
+  `image_copy_tmp_dir`, which **defaults to `/var/tmp`** regardless of what
+  `--cache-dir` is set to. Confirm with `podman info | grep imageCopyTmpDir`.
+
+STIG is what turns this into a failure. `/var/tmp` must be a separate file
+system (V-257848), and the scap-security-guide RHEL 9 kickstart gives it
+**5 GB**, mounted `nodev,nosuid,noexec`. A single large layer overruns it.
+
+> This is *not* `/var/lib/containers`. That is the rootful podman graphroot;
+> `mirror-registry install` runs rootless here, so Quay's image data goes to
+> the invoking user's graphroot — see [06-registry.md](06-registry.md).
+
+**Fix**
+
+Set `MIRROR_TMPDIR` in `config/prep.env`. `scripts/20-mirror-to-disk.sh`
+and `scripts/60-push-to-registry.sh` export it as `TMPDIR`:
+
+```sh
+MIRROR_TMPDIR="/data/tmp"
+```
+
+By hand:
+
+```sh
+mkdir -p /data/tmp
+export TMPDIR=/data/tmp
+oc-mirror --v2 --cache-dir /data/oc-mirror-cache ...
+```
+
+Three things that catch people:
+
+- **The target must be exec-capable and fapolicyd-allowed.** oc-mirror runs
+  a binary it unpacks there, so a `noexec` mount trades the disk error for
+  `fork/exec ...: operation not permitted` — the same failure as
+  [fapolicyd blocks binaries you just installed](#fapolicyd-blocks-binaries-you-just-installed).
+- **`sudo` strips `TMPDIR`.** Use `sudo -E`, or set it inline.
+- **Setting `image_copy_tmp_dir` in `containers.conf` is not sufficient** —
+  there is a long-standing bug where `/var/tmp` is still used. `TMPDIR` is
+  the knob that works.
+
+**Sources**
+
+- <https://www.stigviewer.com/stigs/red_hat_enterprise_linux_9/2026-02-05/finding/V-257848> — RHEL 9 must use a separate file system for `/var/tmp`
+- <https://access.redhat.com/solutions/6991757> — how to change `imageCopyTmpDir`
+- <https://docs.podman.io/en/latest/markdown/podman.1.html> — `TMPDIR` / `image_copy_tmp_dir`, default `/var/tmp`
+- <https://github.com/containers/podman/issues/14091> — `image_copy_tmp_dir` ignored without `TMPDIR`
+- <https://github.com/openshift/oc-mirror/pull/1220> — oc-mirror v2 unpacks to the temp dir; `TMPDIR` is the supported override
+
+---
+
 ## Certificate trust is system-wide, not per-command
 
 `oc-mirror` reads TLS trust from the host trust store. There is no
@@ -399,6 +463,7 @@ chmod 600 "${RH_PULL_SECRET}" "${MIRROR_PULL_SECRET}"
 | `Detected bad umask 0077` from oc-mirror | umask 0077 | `umask 0022` in that shell |
 | `can't open file ...: Operation not permitted` on a script | fapolicyd `%languages` rule | pipe via stdin, or `fapolicyd-cli --file add` |
 | `fork/exec /tmp/oc-mirror-*: operation not permitted` | fapolicyd; the v1 shim unpacks to /tmp | use `scripts/13-catalog.sh` instead of `oc-mirror list --v1` |
+| `no space left on device` naming `/var/tmp` | `TMPDIR` defaults to the 5 GB STIG partition | set `MIRROR_TMPDIR` in `config/prep.env` |
 | `Permission denied`, AVC in audit log | SELinux label | `restorecon -v` |
 | Quay crash-loops after a clean install | umask 0077 | `umask 0022` + systemd drop-in |
 | Quay gone after logout | no linger | `loginctl enable-linger` |

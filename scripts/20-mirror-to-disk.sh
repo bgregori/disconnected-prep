@@ -24,6 +24,7 @@ use_oc_mirror_umask
 [[ -f "${RH_PULL_SECRET}"  ]] || die "No pull secret at ${RH_PULL_SECRET}"
 
 run mkdir -p "${MIRROR_OUT}" "${CACHE_DIR}" "${EXPORTS_DIR}/${EXPORT_TAG}"
+use_mirror_tmpdir
 
 if [[ -d "${MIRROR_OUT}/working-dir/.history" ]]; then
   info "Incremental history found -- this run produces a DIFFERENTIAL archive."

@@ -113,6 +113,28 @@ use_oc_mirror_umask() {
   fi
 }
 
+# oc-mirror stages temporary image blobs in TMPDIR and unpacks a helper
+# binary it then executes. The default is /var/tmp, which STIG requires to be
+# a separate 5 GB file system -- see docs/02-fips-stig-rhel9.md.
+#
+# This is one of the few settings that cannot be passed as a flag, so unlike
+# the rest of prep.env it has to be exported.
+use_mirror_tmpdir() {
+  [[ -n "${MIRROR_TMPDIR:-}" ]] || return 0
+  mkdir -p "${MIRROR_TMPDIR}" || die "Cannot create MIRROR_TMPDIR=${MIRROR_TMPDIR}"
+  export TMPDIR="${MIRROR_TMPDIR}"
+  info "TMPDIR=${TMPDIR}  <- temporary image blobs land here"
+
+  # A noexec mount or a fapolicyd denial turns the space fix into an exec
+  # failure hours later. Probe now, while it is cheap to diagnose.
+  local probe="${TMPDIR}/.exec-probe.$$"
+  printf '#!/bin/sh\nexit 0\n' > "${probe}" 2>/dev/null || return 0
+  chmod 0700 "${probe}" 2>/dev/null || true
+  "${probe}" 2>/dev/null \
+    || warn "${TMPDIR} will not execute a test binary (noexec mount, or fapolicyd). oc-mirror will fail on exec."
+  rm -f "${probe}"
+}
+
 # Assert a binary actually executes. On a fapolicyd host a freshly installed
 # binary can be denied, and the trust database update is not instantaneous --
 # so retry briefly before giving up.
