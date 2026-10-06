@@ -122,7 +122,7 @@ run:
 | archive | 28.5 GiB |
 | export dir (archive + binaries) | 29.3 GiB |
 | import dir (archive + d2m working-dir) | **32.6 GiB** |
-| disconnected extraction cache | 25.2 GiB |
+| registry host extraction cache | 25.2 GiB |
 | registry storage (podman graphroot) | 27.0 GiB |
 | **connected host total** | **53.9 GiB** |
 | **registry host total** | **84.8 GiB** |

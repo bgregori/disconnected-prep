@@ -81,9 +81,9 @@ Ranked by how much attention each needs.
 
 | # | Location | Host | Growth | Shrinks? |
 |---|---|---|---|---|
-| 1 | Registry storage (podman graphroot) | disconnected | every version + operator, forever | only via `oc-mirror delete` + Quay GC, 2-week lag |
+| 1 | Registry storage (podman graphroot) | registry | every version + operator, forever | only via `oc-mirror delete` + Quay GC, 2-week lag |
 | 2 | `CACHE_DIR` | **both** | same rate as the registry | only manually, or `--force-cache-delete` |
-| 3 | `IMPORTS_DIR` | disconnected | one archive per run | trivially — just delete old ones |
+| 3 | `IMPORTS_DIR` | registry | one archive per run | trivially — just delete old ones |
 | 4 | `EXPORTS_DIR` | connected | one archive per run | trivially |
 | 5 | `MIRROR_OUT` | connected | bounded: one archive + history | self-managing |
 

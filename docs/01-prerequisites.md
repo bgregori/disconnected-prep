@@ -166,9 +166,9 @@ deduplicated — run end to end on RHEL 9.6:
 | connected | cache (`--cache-dir`) | 25.4 GiB |
 | connected | archive (`mirror_000001.tar`) | 28.5 GiB |
 | connected | export dir (archive + binaries) | 29.3 GiB |
-| disconnected | import dir (archive + d2m working-dir) | **32.6 GiB** |
-| disconnected | extraction cache | 25.2 GiB |
-| disconnected | registry storage (podman graphroot) | 27.0 GiB |
+| registry | import dir (archive + d2m working-dir) | **32.6 GiB** |
+| registry | extraction cache | 25.2 GiB |
+| registry | registry storage (podman graphroot) | 27.0 GiB |
 | | **connected host total** | **53.9 GiB** |
 | | **registry host total** | **84.8 GiB** |
 
@@ -280,10 +280,10 @@ Specifics belong to the install side; record what you confirmed in
 
 | Tool | Where | Notes |
 |---|---|---|
-| `oc` | both | below on connected; arrives by transfer on disconnected |
+| `oc` | both | below on connected; arrives by transfer on the registry host |
 | `oc-mirror` | both | v2; same channel as the payload |
-| `mirror-registry` | disconnected | the Quay installer bundle; arrives by transfer |
-| `podman` | disconnected | **must already be installed** — `mirror-registry` requires it and does not supply it |
+| `mirror-registry` | registry | the Quay installer bundle; arrives by transfer |
+| `podman` | registry | **must already be installed** — `mirror-registry` requires it and does not supply it |
 | `curl`, `tar`, `sha256sum` | both | base install |
 | `python3` | both | used by the compose/estimate scripts |
 | `jq` | optional | nicer preflight validation |

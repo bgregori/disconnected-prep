@@ -90,9 +90,9 @@ else:
 
 print()
 print(f"  recommended provisioning  ({why})")
-print(f"    registry storage        >= {rec_reg:>6,.0f} GiB   disconnected (podman graphroot)")
+print(f"    registry storage        >= {rec_reg:>6,.0f} GiB   registry host (podman graphroot)")
 print(f"    cache, connected        >= {rec_cache:>6,.0f} GiB")
-print(f"    cache, disconnected     >= {rec_cache:>6,.0f} GiB")
+print(f"    cache, registry host    >= {rec_cache:>6,.0f} GiB")
 print(f"    imports / exports       >= {base*1.6:>6,.0f} GiB   each side, transient")
 print()
 print(f"    volume group, min size  >= {(rec_reg + rec_cache)*1.4:>6,.0f} GiB   leave ~40% unallocated")
