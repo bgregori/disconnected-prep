@@ -5,6 +5,7 @@ On the **registry host**. Installs Red Hat `mirror-registry`
 push.
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 ./scripts/40-stage-transfer.sh                # first transfer only
 ROLE=disconnected ./scripts/00-preflight.sh
 ./scripts/50-install-registry.sh
@@ -22,6 +23,7 @@ rest of this chapter — and `50-install-registry.sh` — expects the prep tree
 layout at `~/ocp-airgap/`. Put it in place before anything else:
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 TAG=2026-10-02_initial
 
 mkdir -p ~/ocp-airgap/{binaries,config,cache}
@@ -31,6 +33,7 @@ cp ~/ocp-airgap/imports/${TAG}/binaries/* ~/ocp-airgap/binaries/
 Then install `oc` and `oc-mirror` on *this* host:
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 cd ~/ocp-airgap/binaries
 sudo tar -xzf openshift-client-linux.tar.gz -C /usr/local/bin oc
 sudo tar -xzf oc-mirror.rhel9.tar.gz -C /usr/local/bin oc-mirror
@@ -50,6 +53,7 @@ Verify, then run preflight — which checks for `oc` and `oc-mirror` and
 fails without them:
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 oc version --client
 ( umask 0022; oc-mirror version --v2 >/dev/null && echo "oc-mirror OK" )
 
@@ -66,6 +70,7 @@ not install it. The next section queries it before Quay exists.
 Set in `config/prep.env`:
 
 ```sh
+# ===== EDIT IN: config/prep.env on the REGISTRY HOST =====
 REGISTRY_HOST="registry.airgap.local"  # FQDN, resolvable from cluster nodes
 REGISTRY_PORT="8443"
 QUAY_ROOT="/opt/quay"                  # on a partition with 500 GB+
@@ -127,6 +132,7 @@ host is infrastructure the cluster depends on for the life of the cluster.
 ## Unpack and install
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 cd ~/ocp-airgap/binaries
 tar -xzf mirror-registry.tar.gz
 
@@ -152,6 +158,7 @@ The installer is not the only thing that writes those directories; restarts
 and upgrades recreate them under whatever umask is in effect.
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 mkdir -p ~/.config/systemd/user/quay-app.service.d
 cat > ~/.config/systemd/user/quay-app.service.d/fix-perms.conf <<'EOF'
 [Service]
@@ -176,6 +183,7 @@ systemctl --user restart quay-app.service
 Quay runs as a **user** service.
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 sudo loginctl enable-linger $USER
 loginctl show-user $USER | grep Linger     # expect Linger=yes
 ```
@@ -191,6 +199,7 @@ cluster is depending on it.
 from the **host trust store** — there is no per-command certificate flag.
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 sudo cp -v /opt/quay/quay-rootCA/rootCA.pem \
            /etc/pki/ca-trust/source/anchors/quay-rootCA.pem
 sudo update-ca-trust
@@ -199,6 +208,7 @@ sudo update-ca-trust
 Verify — this must succeed without `-k`:
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 curl -I https://registry.airgap.local:8443/v2/
 ```
 
@@ -216,6 +226,7 @@ it.
 ## Create the auth file
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 QUAY_AUTH=$(printf 'init:%s' '<password>' | base64 -w0)
 cat > ~/ocp-airgap/binaries/mirror-pull-secret.json <<EOF
 {"auths":{"registry.airgap.local:8443":{"auth":"${QUAY_AUTH}"}}}
@@ -231,6 +242,7 @@ like a credentials problem.
 Verify:
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 printf '%s' '<password>' | podman login \
   --username init --password-stdin \
   --authfile ~/ocp-airgap/binaries/mirror-pull-secret.json \
@@ -272,6 +284,7 @@ The registry working on the registry host proves very little. The cluster nodes
 are what matter.
 
 ```sh
+# ===== RUN ON: A NODE-NETWORK HOST (not the registry host) =====
 # from a host on the node network -- NOT the registry host
 dig +short registry.airgap.local
 curl -I https://registry.airgap.local:8443/v2/

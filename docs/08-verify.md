@@ -7,6 +7,7 @@ someone has booted an ISO costs a day, and in a disconnected environment
 possibly a scheduled transfer window.
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 ./scripts/70-extract-installer.sh
 ./scripts/80-verify-mirror.sh
 ```
@@ -16,6 +17,7 @@ possibly a scheduled transfer window.
 ## Extract the FIPS installer
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 export REG=registry.airgap.local:8443
 export VER=4.21.26
 export IDMS=~/ocp-airgap/imports/2026-10-02_initial/working-dir/cluster-resources/idms-oc-mirror.yaml
@@ -68,6 +70,7 @@ If it succeeds and reports your expected version, the hard part is done.
 ## Run the checks
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 ./scripts/80-verify-mirror.sh
 ```
 
@@ -92,6 +95,7 @@ The verification script runs on the registry host, where everything resolves. Th
 cluster does not live there.
 
 ```sh
+# ===== RUN ON: A NODE-NETWORK HOST (not the registry host) =====
 # from a host on the node network
 dig +short registry.airgap.local
 curl -I https://registry.airgap.local:8443/v2/
@@ -103,6 +107,7 @@ cluster.
 ### Spot-check an operator bundle
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 oc image info --registry-config ~/ocp-airgap/binaries/mirror-pull-secret.json \
   --filter-by-os linux/amd64 \
   registry.airgap.local:8443/redhat/redhat-operator-index:v4.21
@@ -113,6 +118,7 @@ oc image info --registry-config ~/ocp-airgap/binaries/mirror-pull-secret.json \
 Especially the easily-forgotten ones:
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 for img in \
   rhel9/support-tools:latest \
   openshift4/ose-must-gather:latest \
@@ -127,6 +133,7 @@ done
 ### Confirm registry capacity for growth
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 du -sh /opt/quay
 df -h /opt/quay
 ```

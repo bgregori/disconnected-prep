@@ -9,6 +9,7 @@ work" problems on these hosts are there.
 ## First moves
 
 ```sh
+# ===== RUN ON: BOTH HOSTS =====
 # verbose
 oc-mirror --v2 --log-level=debug ...
 
@@ -29,6 +30,7 @@ oc-mirror --v2 -c config.yaml --dry-run file://./mirror-out
 fapolicyd. Permissions and ownership look fine; execution is denied anyway.
 
 ```sh
+# ===== RUN ON: BOTH HOSTS =====
 sudo restorecon -v /usr/local/bin/oc /usr/local/bin/oc-mirror
 sudo fapolicyd-cli --file add /usr/local/bin/oc
 sudo fapolicyd-cli --file add /usr/local/bin/oc-mirror
@@ -45,6 +47,7 @@ cover the other. Background in
 SELinux label from `tar` extraction.
 
 ```sh
+# ===== RUN ON: BOTH HOSTS =====
 sudo ausearch -m AVC -ts recent
 sudo restorecon -v /usr/local/bin/oc /usr/local/bin/oc-mirror
 ```
@@ -54,6 +57,7 @@ sudo restorecon -v /usr/local/bin/oc /usr/local/bin/oc-mirror
 `oc-mirror` runs a local registry on 55000.
 
 ```sh
+# ===== RUN ON: BOTH HOSTS =====
 ss -ltnp | grep 55000
 oc-mirror --v2 --port 56000 ...
 ```
@@ -109,6 +113,7 @@ reads it as the default `--authfile` path.
 Verify against the real catalog rather than assuming:
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 oc-mirror list operators \
   --catalog=registry.redhat.io/redhat/redhat-operator-index:v4.21 \
   --package=<name> --v2
@@ -127,6 +132,7 @@ The cache defaulted to `$HOME`, which on a STIG'd build is often a small
 separate partition.
 
 ```sh
+# ===== RUN ON: BOTH HOSTS =====
 oc-mirror --v2 --cache-dir /data/oc-mirror-cache ...
 ```
 
@@ -161,6 +167,7 @@ The CA is not in the host trust store. `oc-mirror` has no per-command
 certificate flag.
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 sudo cp /opt/quay/quay-rootCA/rootCA.pem /etc/pki/ca-trust/source/anchors/
 sudo update-ca-trust
 curl -I https://registry.airgap.local:8443/v2/      # must work without -k
@@ -174,6 +181,7 @@ The auth file key must match the `docker://` target **exactly**, including
 the port.
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 python3 -m json.tool < mirror-pull-secret.json
 podman login --authfile mirror-pull-secret.json registry.airgap.local:8443
 ```
@@ -190,6 +198,7 @@ An unqualified hostname is treated as an image name. Use an FQDN or an IP.
 Common with Artifactory and Harbor.
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 oc-mirror --v2 --max-nested-paths 2 ...
 ```
 
@@ -205,6 +214,7 @@ STIG umask. `quay-config` was created `0700` and the container cannot read
 it.
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 ls -ld /opt/quay/quay-config
 podman logs quay-app | tail -40
 ```
@@ -215,6 +225,7 @@ Fix: `umask 0022` for the install, plus the systemd drop-in in
 ### Quay disappears after logout
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 sudo loginctl enable-linger $USER
 ```
 
@@ -224,6 +235,7 @@ It was created before `mirror-registry install` created the unit, or its
 paths do not match the real `QUAY_ROOT`.
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 systemctl --user cat quay-app.service | grep -A3 ExecStartPre
 ```
 
@@ -252,6 +264,7 @@ the FIPS binary.
 ### Mirroring dies when the SSH session drops
 
 ```sh
+# ===== RUN ON: BOTH HOSTS =====
 sudo loginctl enable-linger $USER
 systemd-run --scope --user tmux new -s mirror
 ```
@@ -261,6 +274,7 @@ A plain `tmux new` is still in your login scope.
 ### Upstream throttling
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 oc-mirror --v2 --parallel-images 2 --parallel-layers 2 ...
 ```
 

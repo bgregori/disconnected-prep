@@ -74,6 +74,7 @@ mirror run, or worse, silently mirrors nothing for that entry.
 With this repo:
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 ./scripts/13-catalog.sh --list              # every package in the catalog
 ./scripts/13-catalog.sh --list oadp         # ...filtered
 ./scripts/13-catalog.sh lvms-operator       # channels and versions
@@ -86,6 +87,7 @@ The script is a convenience wrapper; these are the commands it runs. Pull
 the catalog's file-based catalog down once, then query it locally.
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 CATALOG=registry.redhat.io/redhat/redhat-operator-index:v4.21
 PULL_SECRET=~/ocp-airgap/binaries/pull-secret.json
 
@@ -102,6 +104,7 @@ oc image extract "${CATALOG}" \
 That gives one directory per package:
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 ls ~/catalog | wc -l                        # ~150 packages
 ls ~/catalog | grep -i oadp                 # find a package
 ```
@@ -109,6 +112,7 @@ ls ~/catalog | grep -i oadp                 # find a package
 Each `catalog.json` is a stream of JSON objects, which `jq` reads directly:
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 PKG=lvms-operator
 
 # the default channel
@@ -186,6 +190,7 @@ Profiles live in `imageset-configs/`, **in your clone of this repository**
 images for one capability.
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 ./scripts/12-compose-imageset.sh                 # list available profiles
 ./scripts/12-compose-imageset.sh virtualization storage-lvms compliance-stig
 ```
@@ -214,6 +219,7 @@ directory created with the rest of the prep tree in
 chapter refers to this file as `${IMAGESET_CONFIG}`.
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 ${EDITOR} ~/ocp-airgap/config/imageset-config.yaml
 ```
 
@@ -296,6 +302,7 @@ use it when the medium has a hard cap.
 Two cheap checks before committing to a multi-hour run.
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 ./scripts/13-catalog.sh --check   # names and channels resolve? (seconds)
 ./scripts/15-dry-run.sh           # full resolution against the catalog
 ```
@@ -303,6 +310,7 @@ Two cheap checks before committing to a multi-hour run.
 By hand, the dry run is the same mirror command with `--dry-run`:
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 cd ~/ocp-airgap
 umask 0022
 oc-mirror --v2 \
@@ -356,6 +364,7 @@ chiefly retaining many OpenShift versions — see
 Watch actual consumption as the mirror runs:
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 du -sh ~/ocp-airgap/cache ~/ocp-airgap/mirror-out
 df -h ~/ocp-airgap
 ```

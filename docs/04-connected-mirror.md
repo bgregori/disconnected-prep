@@ -4,6 +4,7 @@ On the **connected** bastion. Pulls everything in the ImageSetConfiguration
 into tar archives.
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 ROLE=connected ./scripts/00-preflight.sh
 ./scripts/20-mirror-to-disk.sh
 ```
@@ -28,6 +29,7 @@ the pull secret at `~/ocp-airgap/binaries/pull-secret.json`. Confirm before
 starting a long run:
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 oc version --client
 ( umask 0022; oc-mirror version --v2 >/dev/null && echo "oc-mirror OK" )
 ls ~/ocp-airgap/config/imageset-config.yaml
@@ -40,6 +42,7 @@ ls ~/ocp-airgap/config/imageset-config.yaml
 A full mirror runs for hours. An SSH disconnect kills it and you start over.
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 sudo loginctl enable-linger $USER
 systemd-run --scope --user tmux new -s mirror
 ```
@@ -54,6 +57,7 @@ to your login session scope and dies with it.
 ## Run the mirror
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 cd ~/ocp-airgap
 
 umask 0022
@@ -135,6 +139,7 @@ Logs stream to the terminal and to
 `mirror-out/working-dir/logs/oc-mirror-<timestamp>.log`.
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 du -sh ~/ocp-airgap/cache ~/ocp-airgap/mirror-out
 tail -f ~/ocp-airgap/mirror-out/working-dir/logs/oc-mirror-*.log
 ```
@@ -153,6 +158,7 @@ reused. You do not need to start clean.
 ## Stage for transfer
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 mkdir -p exports/2026-10-02_initial
 cp mirror-out/mirror_*.tar exports/2026-10-02_initial/
 cp config/imageset-config.yaml exports/2026-10-02_initial/

@@ -11,6 +11,7 @@ a bare, freshly provisioned host. The second comes after
 [Install the tooling](#install-the-tooling) below.
 
 ```sh
+# ===== RUN ON: BOTH HOSTS =====
 cp config/prep.env.example config/prep.env
 ${EDITOR} config/prep.env
 
@@ -41,6 +42,7 @@ the tooling exists — none of these commands need it.
 One block is marked connected-only. Everything else applies to both.
 
 ```sh
+# ===== RUN ON: BOTH HOSTS =====
 # --- OS and hardening posture ---
 cat /etc/redhat-release
 cat /proc/sys/crypto/fips_enabled           # 1 = host in FIPS mode
@@ -271,6 +273,7 @@ Requirements:
 Verify from somewhere that is not the registry host, before you mirror:
 
 ```sh
+# ===== RUN ON: A NODE-NETWORK HOST (not the registry host) =====
 dig +short registry.airgap.local
 curl -I https://registry.airgap.local:8443/v2/
 ```
@@ -332,12 +335,14 @@ and [06-registry.md](06-registry.md) stages it into place on arrival.
 > [06-registry.md](06-registry.md).
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 ./scripts/10-fetch-binaries.sh
 ```
 
 ### By hand
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 mkdir -p ~/ocp-airgap/{binaries,config,cache,mirror-out,exports}
 cd ~/ocp-airgap/binaries
 
@@ -357,6 +362,7 @@ the registry host — this is the host with internet access, and
 `30-package-transfer.sh` carries it across.
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 sudo tar -xzf openshift-client-linux.tar.gz -C /usr/local/bin oc
 sudo tar -xzf oc-mirror.rhel9.tar.gz -C /usr/local/bin oc-mirror
 sudo chown root:root /usr/local/bin/oc /usr/local/bin/oc-mirror
@@ -380,6 +386,7 @@ Download it from
 <https://console.redhat.com/openshift/downloads#tool-pull-secret>, then:
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 cp ~/Downloads/pull-secret.json ~/ocp-airgap/binaries/pull-secret.json
 chmod 600 ~/ocp-airgap/binaries/pull-secret.json
 ```
@@ -395,6 +402,7 @@ ImageSetConfiguration is the one remaining gap, and
 [03-plan-your-content.md](03-plan-your-content.md) fills it.
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 ROLE=connected ./scripts/00-preflight.sh
 ```
 
@@ -405,6 +413,7 @@ registry host gets the equivalent after the transfer, in
 [06-registry.md](06-registry.md).
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 # --- tooling actually executes (fapolicyd blocks unlisted binaries) ---
 oc version --client
 ( umask 0022; oc-mirror version --v2 >/dev/null && echo "oc-mirror OK" )

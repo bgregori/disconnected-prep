@@ -4,6 +4,7 @@ On the **registry host**. Unpacks the transferred archives into Quay
 and generates the cluster manifests.
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 ./scripts/60-push-to-registry.sh
 ```
 
@@ -12,6 +13,7 @@ and generates the cluster manifests.
 ## Verify the transfer first
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 cd ~/ocp-airgap/imports/2026-10-02_initial
 sha256sum -c SHA256SUMS
 ```
@@ -28,6 +30,7 @@ stages the transferred binaries and allowlists them on this host. Confirm
 before starting a run that takes hours:
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 oc version --client
 ( umask 0022; oc-mirror version --v2 >/dev/null && echo "oc-mirror OK" )
 ```
@@ -37,6 +40,7 @@ oc version --client
 ## Push
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 cd ~/ocp-airgap
 
 export TMPDIR=/data/tmp
@@ -102,6 +106,7 @@ Missing step 1 is the single most common disconnected-install failure.
 ## Confirm it landed
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 curl -s -u init:<password> \
   https://registry.airgap.local:8443/v2/_catalog | python3 -m json.tool | head -40
 
@@ -128,6 +133,7 @@ for a large archive) and re-extracts the whole archive before it resumes.
 If the first attempt already verified the same files, skip the re-hash:
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 SKIP_CHECKSUM=true ./scripts/60-push-to-registry.sh
 ```
 

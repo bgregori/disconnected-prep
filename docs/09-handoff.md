@@ -3,6 +3,7 @@
 The boundary. Prep produces a bundle; the install side consumes it.
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 ./scripts/90-handoff.sh
 ```
 
@@ -69,6 +70,7 @@ the `mirrors:`-before-`source:` ordering oc-mirror emits is fine as-is.
 Open the generated IDMS:
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 cat <import-dir>/working-dir/cluster-resources/idms-oc-mirror.yaml
 ```
 
@@ -128,6 +130,7 @@ untrusted script files (see
 [02-fips-stig-rhel9.md](02-fips-stig-rhel9.md)):
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 IDMS=<import-dir>/working-dir/cluster-resources/idms-oc-mirror.yaml
 
 { echo "imageDigestSources:"
@@ -141,6 +144,7 @@ Check the result: the number of `- mirrors:` lines in your
 `install-config.yaml` must equal the number in the IDMS file.
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 grep -c '^\s*- mirrors:' <import-dir>/working-dir/cluster-resources/idms-oc-mirror.yaml
 grep -c '^- mirrors:'     install-config.yaml
 ```
@@ -150,6 +154,7 @@ grep -c '^- mirrors:'     install-config.yaml
 The registry CA, indented by two spaces under a literal block:
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 # prints the block ready to paste
 { echo "additionalTrustBundle: |"
   sed 's/^/  /' /path/to/rootCA.pem
@@ -166,6 +171,7 @@ registry pulls.
 The single-quoted contents of the mirror auth file, on one line:
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 echo "pullSecret: '$(cat /path/to/mirror-pull-secret.json)'"
 ```
 
@@ -174,6 +180,7 @@ echo "pullSecret: '$(cat /path/to/mirror-pull-secret.json)'"
 ## After the install completes
 
 ```sh
+# ===== RUN ON: THE CLUSTER (install side) =====
 oc apply -f cluster-resources/
 
 oc patch operatorhub cluster --type merge \

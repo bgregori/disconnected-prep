@@ -40,6 +40,7 @@ documented bundle — see [docs/09-handoff.md](docs/09-handoff.md).
 ## Start here
 
 ```sh
+# ===== RUN ON: BOTH HOSTS =====
 cp config/prep.env.example config/prep.env
 ${EDITOR} config/prep.env
 ```
@@ -100,6 +101,26 @@ a printed or PDF copy. Every chapter therefore shows the real commands,
 with the variables written out. Where a chapter offers a script, it also
 shows what that script runs, under a **"By hand"** heading. Following the
 docs alone produces exactly the same result.
+
+**Every code block says where to run it**, on its first line:
+
+```sh
+# ===== RUN ON: CONNECTED BASTION =====
+oc-mirror --v2 --config config/imageset-config.yaml file://./mirror-out
+```
+
+The marker is inside the block rather than above it so that it survives a
+copy-paste into a terminal, a runbook or a change request. Running the
+right command on the wrong host is the most common way these procedures go
+wrong, and the two hosts hold deliberately similar directory trees, so
+`~/ocp-airgap/binaries` looks correct on either one.
+
+The labels used are `CONNECTED BASTION`, `REGISTRY HOST`, `BOTH HOSTS`,
+`A NODE-NETWORK HOST` (for checks that must *not* run on the registry host,
+because resolving a name there proves nothing about the cluster),
+`THE CLUSTER` for the install side, and `THE ISO-GENERATING HOST` for the
+one FIPS check that belongs wherever `openshift-install-fips` runs. Blocks
+that are file content rather than commands are marked `EDIT IN:` instead.
 
 Scripts are a convenience for repeat runs, not the product. They contain no
 hidden logic and echo every command before executing it, so the terminal

@@ -34,6 +34,7 @@ environments it is.
 In `config/prep.env`:
 
 ```sh
+# ===== EDIT IN: config/prep.env on the HOST YOU PUSH FROM =====
 REGISTRY_HOST="artifactory.corp.local"
 REGISTRY_PORT="443"
 # QUAY_ROOT, QUAY_USER, QUAY_PASSWORD are unused -- skip 50-install-registry.sh
@@ -45,6 +46,7 @@ Write the auth file by hand instead of letting `50-install-registry.sh`
 generate it:
 
 ```sh
+# ===== RUN ON: THE HOST YOU PUSH FROM =====
 AUTH=$(printf '%s:%s' "${REG_USER}" "${REG_TOKEN}" | base64 -w0)
 cat > ~/ocp-airgap/binaries/mirror-pull-secret.json <<EOF
 {"auths":{"artifactory.corp.local:443":{"auth":"${AUTH}"}}}
@@ -64,6 +66,7 @@ ends up in automation and in the cluster pull secret.
 If the registry uses an internal CA:
 
 ```sh
+# ===== RUN ON: THE HOST YOU PUSH FROM =====
 sudo cp corp-root-ca.pem /etc/pki/ca-trust/source/anchors/
 sudo update-ca-trust
 curl -I https://artifactory.corp.local/v2/
@@ -80,6 +83,7 @@ it at your CA or assemble the fragment by hand.
 Unchanged except for the destination:
 
 ```sh
+# ===== RUN ON: THE HOST YOU PUSH FROM =====
 oc-mirror --v2 \
   --config imports/<tag>/imageset-config.yaml \
   --from file:///home/user/ocp-airgap/imports/<tag> \
@@ -98,12 +102,14 @@ Artifactory and Harbor often restrict how deeply repositories may nest.
 `oc-mirror` otherwise creates paths that exceed those limits.
 
 ```sh
+# ===== RUN ON: THE HOST YOU PUSH FROM =====
 oc-mirror --v2 --max-nested-paths 2 ...
 ```
 
 In `config/prep.env`:
 
 ```sh
+# ===== EDIT IN: config/prep.env on the HOST YOU PUSH FROM =====
 USE_MAX_NESTED_PATHS="true"
 MAX_NESTED_PATHS="2"
 ```
@@ -121,6 +127,7 @@ Create projects matching the top-level path segments it uses — typically
 Check against the dry-run mapping:
 
 ```sh
+# ===== RUN ON: THE HOST YOU PUSH FROM =====
 awk -F'=' '{print $2}' mirror-out/working-dir/dry-run/mapping.txt \
   | sed 's|.*://||; s|/.*||' | sort -u
 ```

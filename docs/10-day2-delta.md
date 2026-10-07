@@ -77,6 +77,7 @@ promise a customer that every delta is small.
 For a z-stream upgrade, edit `config/prep.env`:
 
 ```sh
+# ===== EDIT IN: config/prep.env on the CONNECTED BASTION =====
 OCP_VERSION="4.21.28"        # was 4.21.26
 EXPORT_TAG="2026-12-01_z-stream-4.21.28"
 ```
@@ -84,6 +85,7 @@ EXPORT_TAG="2026-12-01_z-stream-4.21.28"
 Then regenerate with the same profiles as before:
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 ./scripts/12-compose-imageset.sh virtualization storage-lvms compliance-stig
 ```
 
@@ -107,6 +109,7 @@ leave the version alone.
 ### 2. Check what will move
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 ./scripts/15-dry-run.sh
 ```
 
@@ -116,6 +119,7 @@ proxy for the real download size.
 ### 3. Mirror
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 ./scripts/20-mirror-to-disk.sh
 ```
 
@@ -131,6 +135,7 @@ history is gone or `MIRROR_OUT` changed.
 ### 4. Package
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 ./scripts/30-package-transfer.sh
 ```
 
@@ -144,6 +149,7 @@ is already on the other side.
 ### 5. Verify and push
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 cd ~/ocp-airgap/imports/2026-12-01_z-stream-4.21.28
 sha256sum -c SHA256SUMS
 
@@ -158,6 +164,7 @@ forms seen in some guides are missing required flags.
 ### 6. Re-verify
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 EXPORT_TAG=2026-12-01_z-stream-4.21.28 ./scripts/80-verify-mirror.sh
 ```
 
@@ -165,12 +172,14 @@ For an upgrade, extract the matching installer too — the binary is
 version-specific:
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 EXPORT_TAG=2026-12-01_z-stream-4.21.28 ./scripts/70-extract-installer.sh
 ```
 
 ### 7. Hand off
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 EXPORT_TAG=2026-12-01_z-stream-4.21.28 ./scripts/90-handoff.sh
 ```
 
@@ -188,6 +197,7 @@ destination.
 **Connected bastion**
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 cd ~/ocp-airgap
 umask 0022                       # oc-mirror requires 0022; STIG sets 0077
 
@@ -221,6 +231,7 @@ the tooling is already on the far side.
 **Registry host**
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 cd ~/ocp-airgap
 umask 0022
 TAG=2026-12-01_day2
@@ -245,6 +256,7 @@ If the push reports failures, it is resumable — lower the concurrency and
 run it again:
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 oc-mirror --v2 --config ... --from ... --cache-dir ... --authfile ... \
   --parallel-images 2 --parallel-layers 2 \
   docker://registry.example.com:8443
@@ -262,6 +274,7 @@ present. Take a digest from the push output and resolve it against the
 mirror:
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 oc image info --registry-config binaries/mirror-pull-secret.json \
   --filter-by-os linux/amd64 \
   registry.example.com:8443/<repo>@sha256:<digest>
@@ -279,6 +292,7 @@ part that disrupts anything.
 For completeness, what the install side does with a delta:
 
 ```sh
+# ===== RUN ON: THE CLUSTER (install side) =====
 oc apply -f cluster-resources/
 
 # for an upgrade
@@ -324,6 +338,7 @@ If the connected bastion is rebuilt, restore both before the next run.
 and you need a full one regenerated, delete the history deliberately:
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 rm -rf ~/ocp-airgap/mirror-out/working-dir/.history
 ./scripts/20-mirror-to-disk.sh          # full archive again
 ```
@@ -332,6 +347,7 @@ rm -rf ~/ocp-airgap/mirror-out/working-dir/.history
 hold the tars:
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 for a in ~/ocp-airgap/exports/*/mirror_*.tar; do
   tar xf "$a" -C ~/ocp-airgap/cache/.oc-mirror/.cache docker/
 done

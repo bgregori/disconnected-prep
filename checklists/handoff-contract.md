@@ -55,6 +55,7 @@ say so.
 Confirm the last one now:
 
 ```sh
+# ===== RUN ON: A NODE-NETWORK HOST (not the registry host) =====
 # from a host on the node network
 dig +short <registry-host>
 curl -I https://<registry-host>:<port>/v2/

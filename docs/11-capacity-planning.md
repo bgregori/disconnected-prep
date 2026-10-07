@@ -169,6 +169,7 @@ Run the model against a customer's own policy rather than reading off this
 table:
 
 ```sh
+# ===== RUN ON: ANY HOST (planning calculation) =====
 RETAIN=3 ./scripts/26-project-growth.sh
 GIB_OPERATORS=25 RETAIN=5 YEARS=7 ./scripts/26-project-growth.sh
 ```
@@ -186,6 +187,7 @@ two-second online operation. Repartitioning a registry a production cluster
 depends on is not something you want to discover you need.
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 # Registry host: dedicated VG for registry storage
 sudo pvcreate /dev/nvme1n1
 sudo vgcreate vg_registry /dev/nvme1n1
@@ -202,6 +204,7 @@ Then point podman at it **before installing Quay** — remember `--quayRoot`
 does *not* control where images go:
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 mkdir -p ~/.config/containers
 cat > ~/.config/containers/storage.conf <<'EOF'
 [storage]
@@ -214,6 +217,7 @@ podman info --format '{{.Store.GraphRoot}}'    # confirm before installing
 Extending later:
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 sudo lvextend -L +250G /dev/vg_registry/lv_quay
 sudo xfs_growfs /var/lib/registry-storage      # online, no downtime
 ```
@@ -235,6 +239,7 @@ handles large files better.
 so you cannot accidentally delete everything by editing the wrong file.
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 cat > delete-isc.yaml <<'EOF'
 apiVersion: mirror.openshift.io/v1alpha2
 kind: DeleteImageSetConfiguration
@@ -290,6 +295,7 @@ Restart Quay afterwards. Verify reclamation actually happens — measure, do
 not assume:
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 df -h "$(podman info --format '{{.Store.GraphRoot}}')"
 ```
 
@@ -298,6 +304,7 @@ df -h "$(podman info --format '{{.Store.GraphRoot}}')"
 The easy win, and worth automating from day one:
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 # keep the two most recent transfers on each side
 ls -1dt ~/ocp-airgap/imports/*/ | tail -n +3 | xargs -r rm -rf
 ls -1dt ~/ocp-airgap/exports/*/ | tail -n +3 | xargs -r rm -rf
@@ -324,6 +331,7 @@ roughly one update cycle of headroom, and if reclamation is the answer it
 takes a fortnight.
 
 ```sh
+# ===== RUN ON: BOTH HOSTS =====
 # cheap check, suitable for cron on both hosts
 for p in "$(podman info --format '{{.Store.GraphRoot}}' 2>/dev/null)" \
          /data/cache ~/ocp-airgap/imports; do
@@ -345,6 +353,7 @@ keep it with the `imageset-config.yaml`.
 trend log:
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 date +%F,$(du -sb "$(podman info --format '{{.Store.GraphRoot}}')" | cut -f1),$(du -sb /data/cache | cut -f1)
 ```
 

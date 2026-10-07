@@ -39,6 +39,7 @@ not to the registry host unless you generate the ISO there. Extracting the
 binary is just `oc adm release extract` and needs no FIPS host.
 
 ```sh
+# ===== RUN ON: THE ISO-GENERATING HOST =====
 cat /proc/sys/crypto/fips_enabled   # must be 1 on the ISO-generating host
 ```
 
@@ -67,6 +68,7 @@ you just extracted from a tarball is, by definition, not in it.
 **Fix**
 
 ```sh
+# ===== RUN ON: BOTH HOSTS =====
 sudo fapolicyd-cli --file add /usr/local/bin/oc
 sudo fapolicyd-cli --file add /usr/local/bin/oc-mirror
 sudo fapolicyd-cli --update
@@ -86,6 +88,7 @@ allowlisting undoes the trust.
 Verify:
 
 ```sh
+# ===== RUN ON: BOTH HOSTS =====
 fapolicyd-cli --list | grep -c oc-mirror     # non-zero
 oc version --client                          # now runs
 ```
@@ -130,6 +133,7 @@ believing the problem is something else.
 Either trust the file:
 
 ```sh
+# ===== RUN ON: BOTH HOSTS =====
 sudo fapolicyd-cli --file add /path/to/helper.py
 sudo fapolicyd-cli --update
 ```
@@ -138,6 +142,7 @@ Or -- better -- do not put interpreted scripts on disk at all. Pipe them
 through standard input, where there is no file to open:
 
 ```sh
+# ===== RUN ON: BOTH HOSTS =====
 python3 - <<EOF
 import json, sys
 ...
@@ -158,6 +163,7 @@ EOF
 `Permission denied` on execution, with AVC denials in the audit log:
 
 ```sh
+# ===== RUN ON: BOTH HOSTS =====
 sudo ausearch -m AVC -ts recent
 ```
 
@@ -169,6 +175,7 @@ sudo ausearch -m AVC -ts recent
 **Fix**
 
 ```sh
+# ===== RUN ON: BOTH HOSTS =====
 sudo restorecon -v /usr/local/bin/oc /usr/local/bin/oc-mirror
 ```
 
@@ -199,6 +206,7 @@ later.
 Relax the umask for any shell that runs `oc-mirror`:
 
 ```sh
+# ===== RUN ON: BOTH HOSTS =====
 umask 0022
 oc-mirror --v2 -c config.yaml file://./mirror-out
 ```
@@ -242,6 +250,7 @@ container runs as a different UID and cannot read them.
 Relax the umask for the installer only:
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 umask 0022 && ./mirror-registry install \
   --quayHostname "${REGISTRY_HOST}" \
   --quayRoot "${QUAY_ROOT}" \
@@ -253,6 +262,7 @@ Then make it durable, because the installer is not the only thing that
 writes those directories — upgrades and restarts recreate them:
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 mkdir -p ~/.config/systemd/user/quay-app.service.d
 cat > ~/.config/systemd/user/quay-app.service.d/fix-perms.conf <<EOF
 [Service]
@@ -269,6 +279,7 @@ systemctl --user restart quay-app.service
 Check which umask you have:
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 umask                       # current shell
 grep -rE '^\s*umask' /etc/profile /etc/bashrc /etc/login.defs 2>/dev/null
 ```
@@ -290,6 +301,7 @@ lingering enabled, systemd tears down the user manager at logout.
 **Fix**
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 sudo loginctl enable-linger $USER
 loginctl show-user $USER | grep Linger     # Linger=yes
 ```
@@ -297,6 +309,7 @@ loginctl show-user $USER | grep Linger     # Linger=yes
 For long mirroring runs, also detach the session:
 
 ```sh
+# ===== RUN ON: BOTH HOSTS =====
 systemd-run --scope --user tmux new -s mirror
 # ... start the mirror, then detach with Ctrl-b d
 # after a reconnect:
@@ -327,6 +340,7 @@ another process in the way.
 Check first:
 
 ```sh
+# ===== RUN ON: BOTH HOSTS =====
 ss -ltnp | grep 55000
 ```
 
@@ -334,6 +348,7 @@ Port 55000 is unprivileged, so SELinux usually permits it. If something else
 holds it, change it rather than fighting for it:
 
 ```sh
+# ===== RUN ON: BOTH HOSTS =====
 oc-mirror --v2 --port 56000 ...
 ```
 
@@ -360,6 +375,7 @@ separate partition, often with quotas.
 Always set it explicitly:
 
 ```sh
+# ===== RUN ON: BOTH HOSTS =====
 oc-mirror --v2 --cache-dir /data/oc-mirror-cache ...
 ```
 
@@ -403,6 +419,7 @@ Point `TMPDIR` at a filesystem with room, in the shell that runs
 oc-mirror. It is separate from `--cache-dir`; set both:
 
 ```sh
+# ===== RUN ON: BOTH HOSTS =====
 mkdir -p /data/tmp
 export TMPDIR=/data/tmp
 oc-mirror --v2 --cache-dir /data/oc-mirror-cache ...
@@ -414,6 +431,7 @@ moment you are least likely to remember re-exporting it. On a host
 dedicated to this workflow, set it for every login shell:
 
 ```sh
+# ===== RUN ON: BOTH HOSTS =====
 echo 'export TMPDIR=/data/tmp' | sudo tee /etc/profile.d/oc-mirror-tmpdir.sh
 sudo chmod 0644 /etc/profile.d/oc-mirror-tmpdir.sh
 sudo restorecon -v /etc/profile.d/oc-mirror-tmpdir.sh
@@ -460,6 +478,7 @@ Three things that catch people:
 `--cacert` equivalent.
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 sudo cp "${QUAY_ROOT}/quay-rootCA/rootCA.pem" \
         /etc/pki/ca-trust/source/anchors/quay-rootCA.pem
 sudo update-ca-trust
@@ -468,6 +487,7 @@ sudo update-ca-trust
 Verify, and prefer this over reaching for `--insecure`:
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 curl -I "https://${REGISTRY_HOST}:8443/v2/"
 ```
 
@@ -492,6 +512,7 @@ location means the command behaves differently under `sudo`, under a
 different login, or in a systemd unit — all of which happen on these hosts.
 
 ```sh
+# ===== RUN ON: BOTH HOSTS =====
 chmod 600 "${RH_PULL_SECRET}" "${MIRROR_PULL_SECRET}"
 ```
 

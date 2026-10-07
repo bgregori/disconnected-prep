@@ -337,6 +337,7 @@ Be explicit about the gaps.
 ## Reproducing
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 cp config/prep.env.example config/prep.env   # edit for your environment
 ROLE=connected ./scripts/00-preflight.sh
 ```

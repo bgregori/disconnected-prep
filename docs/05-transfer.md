@@ -5,12 +5,14 @@ longest feedback loop when it goes wrong — a corrupted archive fails hours
 into the registry push, often the next day.
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 ./scripts/30-package-transfer.sh
 ```
 
 ### By hand
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 TAG=2026-10-02_initial
 SRC=~/ocp-airgap/exports/${TAG}
 
@@ -31,6 +33,7 @@ cp -a "${SRC}" /path/to/removable/media/
 On arrival:
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 cd ~/ocp-airgap/imports/${TAG} && sha256sum -c SHA256SUMS
 ```
 
@@ -57,6 +60,7 @@ Obvious, routinely skipped, and the failure happens at the end of a long
 copy.
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 du -sh ~/ocp-airgap/exports/2026-10-02_initial
 df -h /path/to/removable/media
 df -h /path/to/disconnected/imports      # if you can see it
@@ -112,6 +116,7 @@ Non-negotiable at these sizes.
 Before transfer:
 
 ```sh
+# ===== RUN ON: CONNECTED BASTION =====
 cd ~/ocp-airgap/exports/2026-10-02_initial
 find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
 ```
@@ -119,6 +124,7 @@ find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA25
 After arrival:
 
 ```sh
+# ===== RUN ON: REGISTRY HOST =====
 cd ~/ocp-airgap/imports/2026-10-02_initial
 sha256sum -c SHA256SUMS
 ```
