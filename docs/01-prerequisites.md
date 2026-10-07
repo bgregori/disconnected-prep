@@ -33,7 +33,12 @@ mirroring.
 Without the repo, these are the checks that matter. They split the same way
 the script does.
 
-**Pass 1 — on a bare host.** Nothing here needs the tooling installed.
+**Pass 1 — run on BOTH hosts.** The connected bastion and the registry host
+each need their own posture check; nothing here is shared between them, and
+a clean result on one says nothing about the other. Run it on each before
+the tooling exists — none of these commands need it.
+
+One block is marked connected-only. Everything else applies to both.
 
 ```sh
 # --- OS and hardening posture ---
@@ -394,6 +399,10 @@ ROLE=connected ./scripts/00-preflight.sh
 ```
 
 ### By hand
+
+**Connected bastion only** — every path below is one this host owns. The
+registry host gets the equivalent after the transfer, in
+[06-registry.md](06-registry.md).
 
 ```sh
 # --- tooling actually executes (fapolicyd blocks unlisted binaries) ---
