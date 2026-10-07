@@ -1,50 +1,32 @@
-# FIPS and STIG on the RHEL 9 hosts
+# Appendix — FIPS and STIG on the RHEL 9 hosts
 
-Everything in this chapter exists because these hosts are hardened. On a
+**This is reference, not a step. Nothing here needs to be run on its own.**
+
+Everything in this appendix exists because these hosts are hardened. On a
 stock RHEL 9 box none of it is necessary, which is why none of it appears in
 the standard Red Hat mirroring documentation.
 
-Each failure below is one that produces a misleading error. If you are
-debugging something that "should obviously work", start here.
+Each fix is already applied at the point in the chapters where it is needed
+— the fapolicyd allowlist while installing the tooling, `umask 0022` on
+every `oc-mirror` invocation, the Quay permissions during the install. Work
+through the chapters in order and you will have done all of it without
+reading this.
 
----
+What is here is the *why*: each entry is a hardening control, the
+misleading error it produces, and where in the chapters it is handled. If
+you are debugging something that "should obviously work", start here. Some
+blocks below are illustrative fragments rather than commands to paste —
+they show the shape of the fix, and the chapter named in each entry has the
+real one.
 
-## First, a distinction
+Host FIPS mode versus cluster FIPS mode — which hosts need `fips=1`, and
+which do not — is a provisioning decision rather than a failure mode, so it
+lives in
+[01-prerequisites.md](01-prerequisites.md#fips-mode-host-versus-cluster).
 
-Two separate things get conflated constantly:
-
-**Host FIPS mode** — whether the prep host itself boots with `fips=1`. It
-affects which crypto the mirroring tools may use. It is *not* required for
-mirroring: you can pull, archive, transfer and push from a non-FIPS host.
-
-**Cluster FIPS mode** — `fips: true` in `install-config.yaml`. This is what
-the accreditation actually cares about. It is set at install time and cannot
-be changed afterwards.
-
-The two are independent for everything in this repo except the last step.
-A `fips: true` cluster has **two** requirements, and both are easy to miss
-because neither fails loudly:
-
-1. **A FIPS-capable installer binary** — `openshift-install-fips`,
-   extracted from the release payload. The generic `openshift-install` will
-   not do. See [08-verify.md](08-verify.md).
-2. **A host in FIPS mode to run it on.** Red Hat requires the installation
-   program to run from a RHEL 9 computer configured to operate in FIPS
-   mode. Generating the agent ISO on a host with `fips_enabled=0` is not a
-   supported configuration for a FIPS cluster, whichever binary you used.
-
-Only the second is a *host* requirement, and it applies to whichever
-machine runs `openshift-install-fips` — not to the connected bastion, and
-not to the registry host unless you generate the ISO there. Extracting the
-binary is just `oc adm release extract` and needs no FIPS host.
-
-```sh
-# ===== RUN ON: THE ISO-GENERATING HOST =====
-cat /proc/sys/crypto/fips_enabled   # must be 1 on the ISO-generating host
-```
-
-Red Hat's statement of the requirement:
-<https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html/installation_overview/installing-fips>
+[docs/troubleshooting.md](troubleshooting.md) indexes the same failures by
+symptom, in short form. Use that when you have an error message in front of
+you and this when the short form was not enough.
 
 ---
 
@@ -78,7 +60,7 @@ sudo fapolicyd-cli --update
 
 Installing the tooling already runs this — on the connected bastion in
 [01-prerequisites.md](01-prerequisites.md#install-the-tooling), and again
-on the registry host in [06-registry.md](06-registry.md), because the
+on the registry host in [05-registry.md](05-registry.md), because the
 trust database is per-host. You are here because it did not take, or
 because you have added a binary since. Pair it with
 [SELinux mislabels extracted binaries](#selinux-mislabels-extracted-binaries):
@@ -100,6 +82,9 @@ oc version --client                          # now runs
 ---
 
 ## fapolicyd also blocks interpreters reading scripts
+
+*Nothing in the chapters needs this — it is the rule to follow if you add
+tooling of your own.*
 
 **Symptom**
 
@@ -158,6 +143,10 @@ EOF
 
 ## SELinux mislabels extracted binaries
 
+*Already done when the tooling is installed:
+[01-prerequisites.md](01-prerequisites.md#install-the-tooling) on the
+connected bastion, [05-registry.md](05-registry.md) on the registry host.*
+
 **Symptom**
 
 `Permission denied` on execution, with AVC denials in the audit log:
@@ -185,6 +174,10 @@ fapolicyd should trust the final version.
 ---
 
 ## oc-mirror requires umask 0022
+
+*Already on every `oc-mirror` invocation in the chapters —
+[02](02-plan-your-content.md), [03](03-connected-mirror.md),
+[06](06-push-to-registry.md), [09](09-day2-delta.md).*
 
 **Symptom**
 
@@ -229,6 +222,9 @@ finding.
 ---
 
 ## A restrictive umask breaks the Quay install
+
+*Already done by the Quay install in [05-registry.md](05-registry.md),
+which carries both parts.*
 
 **Symptom**
 
@@ -288,6 +284,9 @@ grep -rE '^\s*umask' /etc/profile /etc/bashrc /etc/login.defs 2>/dev/null
 
 ## User services die at logout
 
+*Lingering is already enabled after the Quay install in
+[05-registry.md](05-registry.md).*
+
 **Symptom**
 
 Quay works while you are logged in and is gone the next morning. Or a
@@ -322,6 +321,9 @@ wrapper the session is still in your login scope and dies with it.
 ---
 
 ## oc-mirror needs port 55000
+
+*Preflight in [01-prerequisites.md](01-prerequisites.md) already reports
+whether the port is free.*
 
 **Symptom**
 
@@ -359,6 +361,8 @@ should not add one.
 
 ## $HOME is the wrong place for the cache
 
+*Every `oc-mirror` command in the chapters already passes `--cache-dir`.*
+
 **Symptom**
 
 Mirroring fails hours in with `no space left on device`, while `df -h` shows
@@ -389,6 +393,9 @@ The cache holds roughly the full uncompressed content set, and it is
 
 ## $TMPDIR defaults to a STIG partition
 
+*Set when the hosts are provisioned, in
+[01-prerequisites.md](01-prerequisites.md#disk-concretely).*
+
 **Symptom**
 
 The push fails with `no space left on device` naming a path under
@@ -411,7 +418,7 @@ system (V-257848), and the scap-security-guide RHEL 9 kickstart gives it
 
 > This is *not* `/var/lib/containers`. That is the rootful podman graphroot;
 > `mirror-registry install` runs rootless here, so Quay's image data goes to
-> the invoking user's graphroot — see [06-registry.md](06-registry.md).
+> the invoking user's graphroot — see [05-registry.md](05-registry.md).
 
 **Fix**
 
@@ -425,22 +432,12 @@ export TMPDIR=/data/tmp
 oc-mirror --v2 --cache-dir /data/oc-mirror-cache ...
 ```
 
-**Make it durable.** That `export` dies with the shell, and these are
-multi-hour runs you will reconnect to after a dropped session — the one
-moment you are least likely to remember re-exporting it. On a host
-dedicated to this workflow, set it for every login shell:
-
-```sh
-# ===== RUN ON: BOTH HOSTS =====
-echo 'export TMPDIR=/data/tmp' | sudo tee /etc/profile.d/oc-mirror-tmpdir.sh
-sudo chmod 0644 /etc/profile.d/oc-mirror-tmpdir.sh
-sudo restorecon -v /etc/profile.d/oc-mirror-tmpdir.sh
-```
-
-To keep it to one account instead, append the same line to
-`~/.bash_profile`. Either way, `00-preflight.sh` prints the `TMPDIR` the
-current shell would actually use and fails if it is small or `noexec`, so
-a lost export surfaces before the run rather than hours into it.
+**Make it durable.** That `export` dies with the shell, so
+[01-prerequisites.md](01-prerequisites.md#disk-concretely) sets it for
+every login shell with a `/etc/profile.d` drop-in. `00-preflight.sh` prints
+the `TMPDIR` the current shell would actually use and fails if it is small
+or `noexec`, so a lost export surfaces before the run rather than hours
+into it.
 
 > An already-running `tmux` server keeps the environment it was started
 > with. After adding the drop-in, start a new session — or `tmux kill-server`
@@ -474,6 +471,8 @@ Three things that catch people:
 
 ## Certificate trust is system-wide, not per-command
 
+*Already done after the Quay install in [05-registry.md](05-registry.md).*
+
 `oc-mirror` reads TLS trust from the host trust store. There is no
 `--cacert` equivalent.
 
@@ -499,6 +498,10 @@ curl -I "https://${REGISTRY_HOST}:8443/v2/"
 ---
 
 ## Credential file locations
+
+*Both pull secrets are placed and mode-restricted in
+[01-prerequisites.md](01-prerequisites.md#place-the-pull-secret) and
+[05-registry.md](05-registry.md).*
 
 `oc-mirror` resolves registry credentials in this order:
 

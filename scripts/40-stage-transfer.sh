@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# docs/06-registry.md -- "Stage the transferred tooling"
+# docs/05-registry.md -- "Stage the transferred tooling"
 # Run on: REGISTRY HOST, after the first transfer has landed
 #
 # The transfer deposits everything under ${IMPORTS_DIR}/${EXPORT_TAG}/, but
@@ -19,7 +19,7 @@ require_cmds tar sudo
 IMPORT="${IMPORTS_DIR}/${EXPORT_TAG}"
 BIN="${PREP_ROOT}/binaries"
 
-[[ -d "${IMPORT}" ]] || die "No import at ${IMPORT}. Transfer it first -- see docs/05-transfer.md."
+[[ -d "${IMPORT}" ]] || die "No import at ${IMPORT}. Transfer it first -- see docs/04-transfer.md."
 
 run mkdir -p "${BIN}" "${PREP_ROOT}/config" "${CACHE_DIR}"
 
@@ -70,7 +70,7 @@ ok "oc: $(assert_executes /usr/local/bin/oc)"
 if (umask 0022; oc-mirror version --v2 >/dev/null 2>&1); then
   ok "oc-mirror: executes"
 else
-  die "oc-mirror does not execute. See docs/02-fips-stig-rhel9.md."
+  die "oc-mirror does not execute. See docs/appendix-fips-stig.md."
 fi
 
 command -v podman >/dev/null 2>&1 \

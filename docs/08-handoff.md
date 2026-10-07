@@ -127,7 +127,7 @@ If you would rather not retype it, this prints the block ready to paste.
 It uses only `awk` and `sed`, so there is no script file to create — which
 matters on a host where fapolicyd blocks interpreters from opening
 untrusted script files (see
-[02-fips-stig-rhel9.md](02-fips-stig-rhel9.md)):
+[appendix-fips-stig.md](appendix-fips-stig.md)):
 
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
@@ -198,8 +198,8 @@ graph instead of `api.openshift.com`, and `oc adm upgrade` lists what is
 actually available locally. The OpenShift Update Service operator must be
 installed for that resource to be acted on, so it belongs in the operator
 list at mirror time — see
-[03-plan-your-content.md](03-plan-your-content.md). Without it, upgrades
-are by digest; see [10-day2-delta.md](10-day2-delta.md).
+[02-plan-your-content.md](02-plan-your-content.md). Without it, upgrades
+are by digest; see [09-day2-delta.md](09-day2-delta.md).
 
 > **Applying IDMS/ITMS triggers a rolling restart of every node** as the
 > machine config operator rewrites the CRI-O configuration. On a
@@ -214,14 +214,14 @@ Write these down rather than letting them be discovered.
 
 - Only the mirrored **architecture** can be installed.
 - Only the mirrored **version** exists. Upgrading means another prep cycle —
-  [10-day2-delta.md](10-day2-delta.md).
+  [09-day2-delta.md](09-day2-delta.md).
 - Operators absent from `imageset-config.yaml` are **not installable**, and
   adding one means another airgap transfer.
 - **CDI/DataVolume imports do not honour IDMS/ITMS.** If virtualization is in
   scope, the install side must point DataVolumes at the registry explicitly,
   disable operator-managed boot source imports, and supply the CA via
   `certConfigMap`. See
-  [03-plan-your-content.md](03-plan-your-content.md#obligations-this-creates-for-the-install-side).
+  [02-plan-your-content.md](02-plan-your-content.md#obligations-this-creates-for-the-install-side).
 - **The registry is now infrastructure.** If the registry host goes
   away, the cluster cannot pull images. It needs the same care as any other
   production dependency.
@@ -266,5 +266,5 @@ Retain on the connected bastion:
 
 ---
 
-Next: [10-day2-delta.md](10-day2-delta.md) — for when this cluster needs an
+Next: [09-day2-delta.md](09-day2-delta.md) — for when this cluster needs an
 upgrade or a new operator.

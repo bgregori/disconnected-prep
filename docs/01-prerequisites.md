@@ -24,9 +24,9 @@ On a bare host that first pass **exits non-zero**, reporting missing `oc`,
 `oc-mirror` and pull secret. That is expected — every host check above them
 has still run, and they are installed at the end of this chapter. It also
 reports a missing ImageSetConfiguration, which stays missing until
-[03-plan-your-content.md](03-plan-your-content.md); the run that must exit
+[02-plan-your-content.md](02-plan-your-content.md); the run that must exit
 clean is the one in
-[04-connected-mirror.md](04-connected-mirror.md), immediately before
+[03-connected-mirror.md](03-connected-mirror.md), immediately before
 mirroring.
 
 ### Checking by hand
@@ -47,7 +47,7 @@ One block is marked connected-only. Everything else applies to both.
 cat /etc/redhat-release
 cat /proc/sys/crypto/fips_enabled           # 1 = host in FIPS mode
 getenforce                                  # expect Enforcing
-umask                                       # 0077 on a STIG build -- see docs/02
+umask                                       # 0077 on a STIG build -- see the FIPS/STIG appendix
 systemctl is-active fapolicyd firewalld
 
 # --- oc-mirror's local storage port must be free ---
@@ -59,7 +59,7 @@ df -h ~
 
 # --- temp space ---
 # Unset, oc-mirror stages blobs in /var/tmp and unpacks its helper into
-# /tmp -- two separate 5 GB noexec filesystems on a STIG build. See docs/02.
+# /tmp -- two separate 5 GB noexec filesystems on a STIG build. See the FIPS/STIG appendix.
 echo "TMPDIR=${TMPDIR:-unset}"
 df -h "${TMPDIR:-/var/tmp}"
 
@@ -120,7 +120,7 @@ the cluster depends on, during install and for the life of the cluster. The
 connected bastion is the only way new content enters that registry: every
 z-stream upgrade, added operator, and additional image is pulled and
 archived there, against caches and history that have to survive between
-runs — see [Day-2 delta updates](10-day2-delta.md). Treat both as
+runs — see [Day-2 delta updates](09-day2-delta.md). Treat both as
 production from the start: back them up, and provision them on the
 assumption that they stay.
 
@@ -165,7 +165,7 @@ On the **registry host**:
 > df -h "$(podman info --format '{{.Store.GraphRoot}}')"
 > ```
 >
-> [06-registry.md](06-registry.md) shows how to relocate it.
+> [05-registry.md](05-registry.md) shows how to relocate it.
 
 Rough starting points, for a single x86_64 z-stream:
 
@@ -197,7 +197,7 @@ There is no maintenance window to plan around. These numbers are from a
 first mirror, where no cluster exists yet and nothing is serving workloads.
 Later delta runs against a built cluster are online too, since the pipeline
 only adds content to the registry — see
-[Day-2 delta updates](10-day2-delta.md). The timings are for scheduling the
+[Day-2 delta updates](09-day2-delta.md). The timings are for scheduling the
 run itself.
 
 Three things worth internalising:
@@ -214,14 +214,14 @@ Three things worth internalising:
 > The numbers above size the **first** mirror. A registry that will run for
 > years needs a different conversation — each retained OpenShift version
 > adds ~19 GiB, and nothing is ever reclaimed automatically. See
-> [11-capacity-planning.md](11-capacity-planning.md) before provisioning
+> [10-capacity-planning.md](10-capacity-planning.md) before provisioning
 > disks you cannot easily grow.
 
 Operator size varies enormously — the two compliance operators above added
 only a few GB, whereas virtualization with guest images adds hundreds.
 Rather than size per-configuration, provision the standard **500 GB** and
 check it against the marginal costs in
-[11-capacity-planning.md](11-capacity-planning.md) if your content set is
+[10-capacity-planning.md](10-capacity-planning.md) if your content set is
 unusual.
 
 > **`/var/tmp` also grows during the push.** oc-mirror and the
@@ -231,11 +231,73 @@ unusual.
 > filesystem that permits execution:
 >
 > ```sh
+> # ===== RUN ON: BOTH HOSTS =====
 > mkdir -p /data/tmp && export TMPDIR=/data/tmp
 > ```
 >
-> With the scripts, set `MIRROR_TMPDIR` in `config/prep.env` instead. See
-> [`$TMPDIR` defaults to a STIG partition](02-fips-stig-rhel9.md#tmpdir-defaults-to-a-stig-partition).
+> That `export` dies with the shell, and these are multi-hour runs you will
+> reconnect to after a dropped session — the one moment you are least
+> likely to remember re-exporting it. On a host dedicated to this workflow,
+> set it for every login shell:
+>
+> ```sh
+> # ===== RUN ON: BOTH HOSTS =====
+> echo 'export TMPDIR=/data/tmp' | sudo tee /etc/profile.d/oc-mirror-tmpdir.sh
+> sudo chmod 0644 /etc/profile.d/oc-mirror-tmpdir.sh
+> sudo restorecon -v /etc/profile.d/oc-mirror-tmpdir.sh
+> ```
+>
+> To keep it to one account instead, append the same line to
+> `~/.bash_profile`. An already-running `tmux` server keeps the environment
+> it was started with, so start a new session afterwards.
+>
+> With the scripts, set `MIRROR_TMPDIR` in `config/prep.env` instead. For why
+> `/var/tmp` is too small and what else is in the way, see
+> [`$TMPDIR` defaults to a STIG partition](appendix-fips-stig.md#tmpdir-defaults-to-a-stig-partition).
+
+---
+
+## FIPS mode: host versus cluster
+
+Two separate things get conflated constantly, and the distinction decides
+how you provision these hosts.
+
+**Host FIPS mode** — whether a host itself boots with `fips=1`. It affects
+which crypto the mirroring tools may use. It is *not* required for
+mirroring: you can pull, archive, transfer and push from a non-FIPS host.
+
+**Cluster FIPS mode** — `fips: true` in `install-config.yaml`. This is what
+the accreditation actually cares about. It is set at install time and
+cannot be changed afterwards.
+
+The two are independent for everything in this repository except the last
+step. A `fips: true` cluster has **two** requirements, and both are easy to
+miss because neither fails loudly:
+
+1. **A FIPS-capable installer binary** — `openshift-install-fips`,
+   extracted from the release payload. The generic `openshift-install` will
+   not do. See [07-verify.md](07-verify.md).
+2. **A host in FIPS mode to run it on.** Red Hat requires the installation
+   program to run from a RHEL 9 computer configured to operate in FIPS
+   mode. Generating the agent ISO on a host with `fips_enabled=0` is not a
+   supported configuration for a FIPS cluster, whichever binary you used.
+
+Only the second is a *host* requirement, and it applies to whichever
+machine runs `openshift-install-fips` — not to the connected bastion, and
+not to the registry host unless you generate the ISO there. Extracting the
+binary is just `oc adm release extract` and needs no FIPS host.
+
+```sh
+# ===== RUN ON: THE ISO-GENERATING HOST =====
+cat /proc/sys/crypto/fips_enabled   # must be 1 on the ISO-generating host
+```
+
+Settle this before the hosts are built: if the ISO will be generated on one
+of them, it needs FIPS mode, and the supported way to get it is to install
+the host that way rather than to convert it later.
+
+Red Hat's statement of the requirement:
+<https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html/installation_overview/installing-fips>
 
 ---
 
@@ -320,10 +382,10 @@ Specifics belong to the install side; record what you confirmed in
 
 No internet access is assumed on the registry host for any of this —
 `30-package-transfer.sh` carries the tooling across on the first transfer,
-and [06-registry.md](06-registry.md) stages it into place on arrival.
+and [05-registry.md](05-registry.md) stages it into place on arrival.
 
 > Install `podman` on the registry host while it can still reach a
-> package source, or from the RHEL media. `06-registry.md` queries it
+> package source, or from the RHEL media. `05-registry.md` queries it
 > *before* installing Quay, to decide where image data will land.
 
 ---
@@ -332,7 +394,7 @@ and [06-registry.md](06-registry.md) stages it into place on arrival.
 
 > **Connected bastion.** On the registry host the same binaries
 > arrive with the first transfer instead — see
-> [06-registry.md](06-registry.md).
+> [05-registry.md](05-registry.md).
 
 ```sh
 # ===== RUN ON: CONNECTED BASTION =====
@@ -378,7 +440,7 @@ sudo chmod 0755 /usr/local/bin/oc /usr/local/bin/oc-mirror
 > sudo fapolicyd-cli --update
 > ```
 > Order matters — relabelling changes the file, so trust it afterwards.
-> See [02-fips-stig-rhel9.md](02-fips-stig-rhel9.md).
+> See [appendix-fips-stig.md](appendix-fips-stig.md).
 
 ### Place the pull secret
 
@@ -399,7 +461,7 @@ chmod 600 ~/ocp-airgap/binaries/pull-secret.json
 
 Everything above now exists, so these checks can run. The
 ImageSetConfiguration is the one remaining gap, and
-[03-plan-your-content.md](03-plan-your-content.md) fills it.
+[02-plan-your-content.md](02-plan-your-content.md) fills it.
 
 ```sh
 # ===== RUN ON: CONNECTED BASTION =====
@@ -410,7 +472,7 @@ ROLE=connected ./scripts/00-preflight.sh
 
 **Connected bastion only** — every path below is one this host owns. The
 registry host gets the equivalent after the transfer, in
-[06-registry.md](06-registry.md).
+[05-registry.md](05-registry.md).
 
 ```sh
 # ===== RUN ON: CONNECTED BASTION =====
@@ -428,7 +490,7 @@ jq -e '.auths["registry.redhat.io"]' ~/ocp-airgap/binaries/pull-secret.json \
 ```
 
 On the **registry host** the equivalent checks belong after the
-transfer has been staged — [06-registry.md](06-registry.md) runs them
+transfer has been staged — [05-registry.md](05-registry.md) runs them
 there, including the `podman info` storage check that only makes sense on
 that host.
 
@@ -441,11 +503,20 @@ another trip across the airgap.
 
 1. **Exact OpenShift version.** A pinned z-stream, not a floating channel.
 2. **Every operator you will install.** Including ones you are "probably"
-   going to want. See [03-plan-your-content.md](03-plan-your-content.md).
+   going to want. See [02-plan-your-content.md](02-plan-your-content.md).
 3. **Architecture.** Each additional architecture roughly multiplies the
    payload.
 
+A fourth is expensive for a different reason: whether the cluster will be
+`fips: true`, and if so which host generates the ISO — see
+[FIPS mode: host versus cluster](#fips-mode-host-versus-cluster). That one
+is a host rebuild rather than another transfer.
+
 ---
 
-Next: [02-fips-stig-rhel9.md](02-fips-stig-rhel9.md) — read before running
-anything on a hardened host.
+Next: [02-plan-your-content.md](02-plan-your-content.md).
+
+On a hardened host, keep
+[appendix-fips-stig.md](appendix-fips-stig.md) to hand — it explains the
+FIPS and STIG failures the rest of these chapters work around, and is where
+to look when something that should obviously work does not.

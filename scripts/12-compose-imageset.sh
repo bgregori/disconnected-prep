@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# docs/03-plan-your-content.md -- "Compose your configuration"
+# docs/02-plan-your-content.md -- "Compose your configuration"
 # Run on: CONNECTED bastion
 #
 #   ./scripts/12-compose-imageset.sh virtualization compliance-stig storage-lvms

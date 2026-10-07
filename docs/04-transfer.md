@@ -39,7 +39,7 @@ cd ~/ocp-airgap/imports/${TAG} && sha256sum -c SHA256SUMS
 
 Everything lands under `imports/${TAG}/`, including the tooling. Moving it
 into the prep tree and installing it is the first section of
-[06-registry.md](06-registry.md#stage-the-transferred-tooling) — nothing on
+[05-registry.md](05-registry.md#stage-the-transferred-tooling) — nothing on
 the registry host works until that is done.
 
 ---
@@ -158,4 +158,4 @@ verified.
 
 ---
 
-Next: [06-registry.md](06-registry.md)
+Next: [05-registry.md](05-registry.md)

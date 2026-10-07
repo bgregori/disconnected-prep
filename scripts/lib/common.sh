@@ -115,7 +115,7 @@ use_oc_mirror_umask() {
 
 # oc-mirror stages temporary image blobs in TMPDIR and unpacks a helper
 # binary it then executes. The default is /var/tmp, which STIG requires to be
-# a separate 5 GB file system -- see docs/02-fips-stig-rhel9.md.
+# a separate 5 GB file system -- see docs/appendix-fips-stig.md.
 #
 # This is one of the few settings that cannot be passed as a flag, so unlike
 # the rest of prep.env it has to be exported.
@@ -149,7 +149,7 @@ assert_executes() {
     fi
     sleep 2
   done
-  die "${bin} does not execute. On a fapolicyd host see docs/02-fips-stig-rhel9.md."
+  die "${bin} does not execute. On a fapolicyd host see docs/appendix-fips-stig.md."
 }
 
 # Blocking confirmation, for genuinely destructive choices only.

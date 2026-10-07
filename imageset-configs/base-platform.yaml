@@ -38,7 +38,7 @@ archiveSize: 100
     # by digest -- `oc adm upgrade --to-image --allow-explicit-upgrade` --
     # which is supported, but the cluster will show no available updates.
     # Reversing this later costs another mirror run and transfer, so decide
-    # before the first mirror. See docs/03-plan-your-content.md.
+    # before the first mirror. See docs/02-plan-your-content.md.
     graph: true
 # <<< platform
 

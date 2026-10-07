@@ -46,8 +46,8 @@ is not caught until late.
 > extract` just copies a file — but whichever host generates the agent ISO
 > must report `1` from `/proc/sys/crypto/fips_enabled`. If that is not this
 > host, it is a fact the install side needs; see
-> [09-handoff.md](09-handoff.md) and
-> [02-fips-stig-rhel9.md](02-fips-stig-rhel9.md).
+> [08-handoff.md](08-handoff.md) and
+> [FIPS mode: host versus cluster](01-prerequisites.md#fips-mode-host-versus-cluster).
 
 **`--idms-file` must be an absolute path.** `oc` resolves it relative to the
 current directory. A relative path that happens to be wrong produces an
@@ -158,14 +158,14 @@ Be honest with the install team about the limits.
   `oc get packagemanifests -n openshift-marketplace` once a cluster exists.
 - **Guest boot sources.** Mirrored guest images are not proof that CDI can
   import them — CDI ignores IDMS and needs its own CA configuration. See
-  [03-plan-your-content.md](03-plan-your-content.md#obligations-this-creates-for-the-install-side).
+  [02-plan-your-content.md](02-plan-your-content.md#obligations-this-creates-for-the-install-side).
 - **Cluster-side DNS, NTP, routing.** Outside prep's reach.
 - **That you mirrored the right things.** Verification proves the mirror is
   internally consistent, not that it matches someone's intent. That was
-  decided in chapter 3.
+  decided in chapter 2.
 
 ---
 
 If everything passes, complete
 [checklists/prep-acceptance.md](../checklists/prep-acceptance.md), then go
-to [09-handoff.md](09-handoff.md).
+to [08-handoff.md](08-handoff.md).

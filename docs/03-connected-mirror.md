@@ -12,12 +12,12 @@ ROLE=connected ./scripts/00-preflight.sh
 By now the tooling and pull secret are in place from
 [01-prerequisites.md](01-prerequisites.md#install-the-tooling), and
 `imageset-config.yaml` exists from
-[03-plan-your-content.md](03-plan-your-content.md). So this is the
+[02-plan-your-content.md](02-plan-your-content.md). So this is the
 preflight run that must **exit clean** — the last gate before a multi-hour
 download.
 
 Missing `oc` or `oc-mirror` means chapter 1's tooling step was skipped; a
-missing ImageSetConfiguration means chapter 3 was.
+missing ImageSetConfiguration means chapter 2 was.
 
 ---
 
@@ -79,8 +79,11 @@ oc-mirror --v2 \
 > blobs in `/var/tmp`, which STIG gives its own 5 GB filesystem, and the run
 > dies partway through on `no space left on device`. The target needs room
 > and must permit execution. Set it durably rather than retyping it after
-> every reconnect:
-> [`$TMPDIR` defaults to a STIG partition](02-fips-stig-rhel9.md#tmpdir-defaults-to-a-stig-partition).
+> every reconnect —
+> [01-prerequisites.md](01-prerequisites.md#disk-concretely) has the
+> drop-in, and
+> [the appendix](appendix-fips-stig.md#tmpdir-defaults-to-a-stig-partition)
+> has the why.
 
 This is **mirror-to-disk (m2d)**. The workflow is selected by argument
 shape, not by a flag:
@@ -170,4 +173,4 @@ what this bundle contains.
 
 ---
 
-Next: [05-transfer.md](05-transfer.md)
+Next: [04-transfer.md](04-transfer.md)

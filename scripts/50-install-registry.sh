@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# docs/06-registry.md
+# docs/05-registry.md
 # Run on: REGISTRY HOST
 #
 # Installs Red Hat mirror-registry (standalone Quay), trusts its CA, and
 # writes the auth file used for the registry push.
 #
 # Two STIG-specific workarounds are applied here; both are explained in
-# docs/02-fips-stig-rhel9.md:
+# docs/appendix-fips-stig.md:
 #   1. umask 0022 for the installer, because a 0077/0027 umask produces
 #      config directories the Quay container cannot read.
 #   2. A systemd drop-in that re-applies permissions on every start, because
@@ -41,7 +41,7 @@ if [[ ! -x "${BIN}/mirror-registry" ]]; then
   if [[ ! -f "${TARBALL}" ]]; then
     IMPORTED="${IMPORTS_DIR}/${EXPORT_TAG}/binaries/mirror-registry.tar.gz"
     [[ -f "${IMPORTED}" ]] || die "No mirror-registry.tar.gz in ${BIN} or ${IMPORTED}.
-Run ./scripts/40-stage-transfer.sh first -- see docs/06-registry.md."
+Run ./scripts/40-stage-transfer.sh first -- see docs/05-registry.md."
     info "Not staged in ${BIN}; using ${IMPORTED}"
     run mkdir -p "${BIN}"
     run cp "${IMPORTED}" "${TARBALL}"

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# docs/09-handoff.md
+# docs/08-handoff.md
 # Run on: REGISTRY HOST
 #
 # Assembles everything the install side needs into one directory, including
@@ -226,12 +226,12 @@ that is a full outage; expect the API to disappear for several minutes.
 
 - Only \`${OCP_ARCH:-amd64}\` was mirrored.
 - Only version \`${OCP_VERSION}\`. Upgrades need another prep cycle --
-  see \`docs/10-day2-delta.md\`.
+  see \`docs/09-day2-delta.md\`.
 - Operators not in \`imageset-config.yaml\` are not installable. Adding one
   means another trip across the airgap.
 - CDI/DataVolume imports do **not** honour IDMS/ITMS. If you are using
   OpenShift Virtualization boot sources, point DataVolumes at
-  \`$(registry_ref)\` explicitly. See \`docs/03-plan-your-content.md\`.
+  \`$(registry_ref)\` explicitly. See \`docs/02-plan-your-content.md\`.
 EOF
 
 info "Generating checksums"

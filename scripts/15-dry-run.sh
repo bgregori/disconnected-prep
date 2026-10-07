@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# docs/03-plan-your-content.md -- "Validate before you pull"
+# docs/02-plan-your-content.md -- "Validate before you pull"
 # Run on: CONNECTED bastion
 #
 # Dry run: resolves the ImageSetConfiguration and writes the full list of
@@ -47,5 +47,5 @@ Review mapping.txt before mirroring. Things worth checking:
   - Release payload count looks like one version, not a whole z-stream range.
 
 A dry run does not tell you the byte size of the download. Provision
-500 GB on the registry host and see docs/11-capacity-planning.md.
+500 GB on the registry host and see docs/10-capacity-planning.md.
 EOF

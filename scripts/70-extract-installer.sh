@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# docs/08-verify.md -- "Extract the FIPS installer"
+# docs/07-verify.md -- "Extract the FIPS installer"
 # Run on: REGISTRY HOST
 #
 # Extracts openshift-install-fips from the release payload in the local

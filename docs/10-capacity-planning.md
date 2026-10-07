@@ -99,7 +99,7 @@ next "small delta update" re-downloads everything.
 previous `mirror_*.tar` before each run, so it holds one archive plus the
 `.history/` files (~130 KB per run). Do not over-provision it, and do not
 delete `.history/` to save space —
-[that is what makes deltas work](10-day2-delta.md).
+[that is what makes deltas work](09-day2-delta.md).
 
 ---
 

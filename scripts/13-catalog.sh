@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# docs/03-plan-your-content.md -- discovering and validating operator content
+# docs/02-plan-your-content.md -- discovering and validating operator content
 # Run on: CONNECTED bastion (needs access to the catalog image)
 #
 #   ./scripts/13-catalog.sh --list            # every package in the catalog
@@ -68,7 +68,7 @@ PY
 
   --check)
     [[ -f "${IMAGESET_CONFIG}" ]] \
-      || die "No ImageSetConfiguration at ${IMAGESET_CONFIG}. Build one first (docs/03)."
+      || die "No ImageSetConfiguration at ${IMAGESET_CONFIG}. Build one first (docs/02-plan-your-content.md)."
     info "Validating ${IMAGESET_CONFIG} against ${CATALOG}"
     python3 - "${FBC_DIR}" "${IMAGESET_CONFIG}" <<'PY'
 import json, os, re, sys

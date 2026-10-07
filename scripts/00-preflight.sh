@@ -25,7 +25,7 @@ check() { if ( "$@" ); then :; else failures=$((failures+1)); fi; }
 if [[ "${ROLE}" == "connected" ]]; then
   TOOLING_HINT="Run scripts/10-fetch-binaries.sh (docs/01-prerequisites.md)."
 else
-  TOOLING_HINT="Run scripts/40-stage-transfer.sh (docs/06-registry.md)."
+  TOOLING_HINT="Run scripts/40-stage-transfer.sh (docs/05-registry.md)."
 fi
 
 info "Preflight for role: ${ROLE}"
@@ -36,7 +36,7 @@ if [[ -r /etc/redhat-release ]]; then
   ok "OS: $(cat /etc/redhat-release)"
   grep -qE 'release 9' /etc/redhat-release || warn "Not RHEL 9 -- these procedures are only tested on RHEL 9."
 else
-  warn "Not a Red Hat host. The FIPS/STIG workarounds in docs/02 assume RHEL 9."
+  warn "Not a Red Hat host. The FIPS/STIG workarounds in docs/appendix-fips-stig.md assume RHEL 9."
 fi
 
 # --- FIPS ------------------------------------------------------------------
@@ -50,7 +50,7 @@ if [[ -r /proc/sys/crypto/fips_enabled ]]; then
     # FIPS mode, so do not report this as unconditionally fine.
     info "Host FIPS mode: disabled. Fine for mirroring -- cluster FIPS is set"
     info "  in install-config.yaml. But whichever host runs openshift-install-fips"
-    info "  to generate the ISO must itself be in FIPS mode; see docs/02."
+    info "  to generate the ISO must itself be in FIPS mode; see docs/01-prerequisites.md."
   fi
 fi
 
@@ -61,7 +61,7 @@ if [[ "${current_umask}" != "0022" ]]; then
   warn "umask is ${current_umask}. Two things break at this setting:"
   warn "  - oc-mirror warns 'Detected bad umask' and writes unreadable cache/archive content"
   warn "  - mirror-registry creates Quay config dirs the container cannot read"
-  warn "  -> the scripts relax it per-run; see docs/02-fips-stig-rhel9.md"
+  warn "  -> the scripts relax it per-run; see docs/appendix-fips-stig.md"
 fi
 
 if command -v fapolicyd >/dev/null 2>&1 && systemctl is-active --quiet fapolicyd 2>/dev/null; then
@@ -141,7 +141,7 @@ else
         warn "Quay images will be written to the ROOT filesystem (${graph_mnt})."
         warn "  Filling / takes the host down, not just the registry."
         warn "  To relocate, set graphroot in ~/.config/containers/storage.conf"
-        warn "  BEFORE installing -- see docs/06-registry.md"
+        warn "  BEFORE installing -- see docs/05-registry.md"
       fi
     else
       warn "Could not determine podman storage root; check it manually."
@@ -172,7 +172,7 @@ else
   warn "TMPDIR is not set. oc-mirror will stage blobs in /var/tmp and unpack"
   warn "  its helper into /tmp -- separate 5 GB noexec filesystems under STIG."
   warn "  -> export TMPDIR durably, or set MIRROR_TMPDIR in config/prep.env."
-  warn "     See docs/02-fips-stig-rhel9.md"
+  warn "     See docs/appendix-fips-stig.md"
 fi
 check require_space "${tmp_blobs}" "${MIN_TMP_GB:-20}"
 
@@ -230,7 +230,7 @@ if [[ "${ROLE}" == "connected" ]]; then
     ok "ImageSetConfiguration present: ${IMAGESET_CONFIG}"
   else
     warn "No ImageSetConfiguration at ${IMAGESET_CONFIG}"
-    warn "  -> build one: see docs/03-plan-your-content.md"
+    warn "  -> build one: see docs/02-plan-your-content.md"
     failures=$((failures+1))
   fi
 fi

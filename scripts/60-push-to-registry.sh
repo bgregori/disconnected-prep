@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# docs/07-push-to-registry.md
+# docs/06-push-to-registry.md
 # Run on: REGISTRY HOST
 #
 # Disk-to-mirror (d2m). Unpacks the transferred archive and pushes its
@@ -9,7 +9,7 @@
 # ClusterCatalog, signature ConfigMaps). They are written to the --from
 # path, i.e. ${IMPORTS_DIR}/${EXPORT_TAG}/working-dir/cluster-resources/.
 # Those files are the main artifact the install side consumes -- see
-# docs/09-handoff.md.
+# docs/08-handoff.md.
 #
 # --config is required even for d2m; it selects which subset of the archive
 # to publish.

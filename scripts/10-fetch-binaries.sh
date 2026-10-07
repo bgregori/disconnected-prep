@@ -61,7 +61,7 @@ ok "oc: $(assert_executes /usr/local/bin/oc)"
 if (umask 0022; oc-mirror version --v2 >/dev/null 2>&1); then
   ok "oc-mirror: executes"
 else
-  die "oc-mirror does not execute. See docs/02-fips-stig-rhel9.md."
+  die "oc-mirror does not execute. See docs/appendix-fips-stig.md."
 fi
 
 cat >&2 <<EOF

@@ -1,7 +1,7 @@
 # Troubleshooting
 
 Organised by the error you are seeing. For hardening-specific failures, see
-[02-fips-stig-rhel9.md](02-fips-stig-rhel9.md) — most "this should obviously
+[appendix-fips-stig.md](appendix-fips-stig.md) — most "this should obviously
 work" problems on these hosts are there.
 
 ---
@@ -40,7 +40,7 @@ sudo fapolicyd-cli --update
 Relabel first: it changes the file, so trusting it beforehand achieves
 nothing. The trust database is per-host — doing this on one host does not
 cover the other. Background in
-[02-fips-stig-rhel9.md](02-fips-stig-rhel9.md#fapolicyd-blocks-binaries-you-just-installed).
+[appendix-fips-stig.md](appendix-fips-stig.md#fapolicyd-blocks-binaries-you-just-installed).
 
 ### `Permission denied`, AVC denials in the audit log
 
@@ -220,7 +220,7 @@ podman logs quay-app | tail -40
 ```
 
 Fix: `umask 0022` for the install, plus the systemd drop-in in
-[06-registry.md](06-registry.md).
+[05-registry.md](05-registry.md).
 
 ### Quay disappears after logout
 
@@ -292,7 +292,7 @@ No cleanup needed.
    transfer".
 3. Shrink the ImageSetConfiguration to one operator and retry. Isolating
    which entry fails is usually faster than reading a long log.
-4. Check [02-fips-stig-rhel9.md](02-fips-stig-rhel9.md) once more — on a
+4. Check [appendix-fips-stig.md](appendix-fips-stig.md) once more — on a
    hardened host it is usually the host.
 
 Upstream references, mirrored into `reference/` for offline use:

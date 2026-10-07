@@ -25,7 +25,7 @@ in the push, hours later, that points at the registry rather than the media.
 
 ## Tooling
 
-Already installed — [06-registry.md](06-registry.md#stage-the-transferred-tooling)
+Already installed — [05-registry.md](05-registry.md#stage-the-transferred-tooling)
 stages the transferred binaries and allowlists them on this host. Confirm
 before starting a run that takes hours:
 
@@ -65,7 +65,10 @@ This is **disk-to-mirror (d2m)**. Points to note:
 - **`TMPDIR`** because the push is where this bites hardest: unset, blobs
   stage in `/var/tmp`, a separate 5 GB filesystem under STIG. Set it
   durably rather than per-shell —
-  [`$TMPDIR` defaults to a STIG partition](02-fips-stig-rhel9.md#tmpdir-defaults-to-a-stig-partition).
+  [01-prerequisites.md](01-prerequisites.md#disk-concretely) has the
+  drop-in, and
+  [the appendix](appendix-fips-stig.md#tmpdir-defaults-to-a-stig-partition)
+  has the why.
 
 Expect hours. Use tmux.
 
@@ -146,7 +149,7 @@ Common causes:
 
 | Error | Cause |
 |---|---|
-| `x509: certificate signed by unknown authority` | CA not in the host trust store — see [06](06-registry.md) |
+| `x509: certificate signed by unknown authority` | CA not in the host trust store — see [06](05-registry.md) |
 | `unauthorized` | auth file key does not match the `docker://` target exactly, port included |
 | `no space left on device` | `QUAY_ROOT` or `--cache-dir` full |
 | `either --from or --workspace need to be provided` | missing `--from` with a `docker://` destination |
@@ -156,4 +159,4 @@ More in [troubleshooting.md](troubleshooting.md).
 
 ---
 
-Next: [08-verify.md](08-verify.md)
+Next: [07-verify.md](07-verify.md)

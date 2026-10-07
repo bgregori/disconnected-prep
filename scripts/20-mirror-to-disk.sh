@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# docs/04-connected-mirror.md -- "Run the mirror"
+# docs/03-connected-mirror.md -- "Run the mirror"
 # Run on: CONNECTED bastion
 #
 # Mirror-to-disk (m2d). Pulls everything named in the ImageSetConfiguration
@@ -20,7 +20,7 @@ require_vars PREP_ROOT MIRROR_OUT CACHE_DIR IMAGESET_CONFIG RH_PULL_SECRET EXPOR
 require_cmds oc-mirror
 use_oc_mirror_umask
 
-[[ -f "${IMAGESET_CONFIG}" ]] || die "No ImageSetConfiguration at ${IMAGESET_CONFIG} (see docs/03-plan-your-content.md)"
+[[ -f "${IMAGESET_CONFIG}" ]] || die "No ImageSetConfiguration at ${IMAGESET_CONFIG} (see docs/02-plan-your-content.md)"
 [[ -f "${RH_PULL_SECRET}"  ]] || die "No pull secret at ${RH_PULL_SECRET}"
 
 run mkdir -p "${MIRROR_OUT}" "${CACHE_DIR}" "${EXPORTS_DIR}/${EXPORT_TAG}"

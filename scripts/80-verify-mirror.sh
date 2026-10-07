@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# docs/08-verify.md -- the gate
+# docs/07-verify.md -- the gate
 # Run on: REGISTRY HOST
 #
 # Pass/fail checks that the mirror is complete and usable. Run this before

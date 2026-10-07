@@ -7,7 +7,7 @@ Common in accredited environments, where a hardened registry already exists
 and standing up another one is a paperwork exercise rather than a technical
 one.
 
-This replaces [06-registry.md](06-registry.md). Everything else in the repo
+This replaces [05-registry.md](05-registry.md). Everything else in the repo
 is unchanged.
 
 ---
@@ -187,7 +187,7 @@ prep cannot verify and cannot defend against.
 `REGISTRY_PORT`. Its CA-trust check exercises your corporate chain rather
 than a Quay-generated one.
 
-The manual check in [08-verify.md](08-verify.md) matters more here: confirm
+The manual check in [07-verify.md](07-verify.md) matters more here: confirm
 resolution and pull **from the node network**, since an enterprise registry
 is more likely than a local Quay to sit behind firewalls or load balancers
 the nodes see differently from the host you push from.

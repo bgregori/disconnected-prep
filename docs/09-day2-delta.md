@@ -363,9 +363,9 @@ on-demand, batch them: it is cheaper to mirror three operators you might
 need than to arrange three transfer windows.
 
 This is the argument for over-mirroring at
-[chapter 3](03-plan-your-content.md) time.
+[chapter 2](02-plan-your-content.md) time.
 
 Every retained version also costs disk, permanently — roughly 19 GiB in the
 registry and again in each cache. Once you are running this loop regularly,
-read [11-capacity-planning.md](11-capacity-planning.md) and decide a
+read [10-capacity-planning.md](10-capacity-planning.md) and decide a
 retention policy before the registry decides one for you.

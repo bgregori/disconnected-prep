@@ -311,4 +311,4 @@ config file.
 
 ---
 
-Next: [07-push-to-registry.md](07-push-to-registry.md)
+Next: [06-push-to-registry.md](06-push-to-registry.md)

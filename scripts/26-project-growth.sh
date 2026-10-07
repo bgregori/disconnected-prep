@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# docs/11-capacity-planning.md
+# docs/10-capacity-planning.md
 # Run on: either host (it does no I/O against a registry)
 #
 # Projects multi-year disk growth for the mirror registry and the two
@@ -99,6 +99,6 @@ print(f"    volume group, min size  >= {(rec_reg + rec_cache)*1.4:>6,.0f} GiB   
 print()
 print("  'all three' = registry + the oc-mirror cache on BOTH hosts.")
 print("  Add ~1 archive per side for imports/exports (transient).")
-print("  Provision on LVM and leave free extents -- see docs/11-capacity-planning.md")
+print("  Provision on LVM and leave free extents -- see docs/10-capacity-planning.md")
 print()
 PY

@@ -359,7 +359,7 @@ allowance for its own cache and archive staging.
 There is no need to compute this per-configuration. For the reasoning, the
 measured numbers behind it, and the cases where 500 GB is *not* enough —
 chiefly retaining many OpenShift versions — see
-[11-capacity-planning.md](11-capacity-planning.md).
+[10-capacity-planning.md](10-capacity-planning.md).
 
 Watch actual consumption as the mirror runs:
 
@@ -427,4 +427,4 @@ can install. `90-handoff.sh` copies it into the handoff bundle.
 
 ---
 
-Next: [04-connected-mirror.md](04-connected-mirror.md)
+Next: [03-connected-mirror.md](03-connected-mirror.md)

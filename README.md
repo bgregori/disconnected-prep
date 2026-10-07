@@ -35,7 +35,7 @@ delta mirroring loop.
 
 **Out of scope:** `install-config.yaml`, `agent-config.yaml`, ISO generation,
 and anything that happens after a cluster exists. Prep hands those over as a
-documented bundle — see [docs/09-handoff.md](docs/09-handoff.md).
+documented bundle — see [docs/08-handoff.md](docs/08-handoff.md).
 
 ## Start here
 
@@ -51,18 +51,24 @@ runs exactly the commands the doc shows, with the variables filled in.
 | | Doc | Script | Where |
 |---|---|---|---|
 | 1 | [Prerequisites](docs/01-prerequisites.md) | `00-preflight.sh`, `10-fetch-binaries.sh` | both |
-| 2 | [FIPS/STIG on RHEL 9](docs/02-fips-stig-rhel9.md) | — | both |
-| 3 | [Plan your content](docs/03-plan-your-content.md) | `12-compose-imageset.sh`, `13-catalog.sh`, `15-dry-run.sh` | connected |
-| 4 | [Mirror to disk](docs/04-connected-mirror.md) | `20-mirror-to-disk.sh` | connected |
-| 5 | [Transfer](docs/05-transfer.md) | `30-package-transfer.sh` | connected |
-| 6 | [Registry](docs/06-registry.md) | `40-stage-transfer.sh`, `50-install-registry.sh` | registry |
-| 7 | [Push to registry](docs/07-push-to-registry.md) | `60-push-to-registry.sh` | registry |
-| 8 | [Verify](docs/08-verify.md) | `70-extract-installer.sh`, `80-verify-mirror.sh` | registry |
-| 9 | [Handoff](docs/09-handoff.md) | `90-handoff.sh` | registry |
-| 10 | [Day-2 deltas](docs/10-day2-delta.md) | re-runs 3–7 | both |
-| 11 | [Capacity planning](docs/11-capacity-planning.md) | `26-project-growth.sh` | planning |
+| 2 | [Plan your content](docs/02-plan-your-content.md) | `12-compose-imageset.sh`, `13-catalog.sh`, `15-dry-run.sh` | connected |
+| 3 | [Mirror to disk](docs/03-connected-mirror.md) | `20-mirror-to-disk.sh` | connected |
+| 4 | [Transfer](docs/04-transfer.md) | `30-package-transfer.sh` | connected |
+| 5 | [Registry](docs/05-registry.md) | `40-stage-transfer.sh`, `50-install-registry.sh` | registry |
+| 6 | [Push to registry](docs/06-push-to-registry.md) | `60-push-to-registry.sh` | registry |
+| 7 | [Verify](docs/07-verify.md) | `70-extract-installer.sh`, `80-verify-mirror.sh` | registry |
+| 8 | [Handoff](docs/08-handoff.md) | `90-handoff.sh` | registry |
+| 9 | [Day-2 deltas](docs/09-day2-delta.md) | re-runs 2–6 | both |
+| 10 | [Capacity planning](docs/10-capacity-planning.md) | `26-project-growth.sh` | planning |
+
+The chapters carry the FIPS and STIG workarounds inline, at the step that
+needs each one. [FIPS/STIG on RHEL 9](docs/appendix-fips-stig.md) is the
+appendix explaining why they are there and what fails without them — read
+it when something that should obviously work does not, not as a step of
+its own.
 
 Also: [troubleshooting](docs/troubleshooting.md) ·
+[FIPS/STIG reference](docs/appendix-fips-stig.md) ·
 [bring your own registry](docs/appendix-byo-registry.md) ·
 [acceptance checklist](checklists/prep-acceptance.md) ·
 [handoff contract](checklists/handoff-contract.md) ·
@@ -131,9 +137,9 @@ Scripts are numbered to sort into execution order, with gaps for insertions.
 Odd-numbered scripts are optional (dry run, size estimate, catalog queries).
 
 If you are working without the repo, the two chapters to read closely are
-[03 — plan your content](docs/03-plan-your-content.md), which includes a
+[02 — plan your content](docs/02-plan-your-content.md), which includes a
 complete ImageSetConfiguration you can type, and
-[09 — handoff](docs/09-handoff.md), which shows how to build
+[08 — handoff](docs/08-handoff.md), which shows how to build
 `imageDigestSources` from the generated IDMS without the helper script.
 
 Markers used throughout:
@@ -142,7 +148,7 @@ Markers used throughout:
 > fail confusingly on a hardened host if skipped.
 
 > 📌 **Handoff** — something the install side must be told. Collected in
-> [docs/09-handoff.md](docs/09-handoff.md).
+> [docs/08-handoff.md](docs/08-handoff.md).
 
 ## Versions
 

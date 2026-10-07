@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# docs/05-transfer.md
+# docs/04-transfer.md
 # Run on: CONNECTED bastion
 #
 # Packages the staged export for transfer and writes a checksum manifest.

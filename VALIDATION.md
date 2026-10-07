@@ -91,7 +91,7 @@ baseline and ran config → mirror → package → transfer → push → verify.
 | `80-verify-mirror.sh` | 7 / 7 |
 | Content check | gitops images pullable **from the mirror by digest** |
 
-Confirms the whole of `docs/10-day2-delta.md`, not just the archive-size
+Confirms the whole of `docs/09-day2-delta.md`, not just the archive-size
 mechanism.
 
 ### Size estimation — measured, then removed
@@ -99,7 +99,7 @@ mechanism.
 A size estimator was built, tested and subsequently **removed from the
 repository** in favour of flat "provision 500 GB on the registry host"
 guidance. The measurements it produced are retained here because
-`docs/11-capacity-planning.md` rests on them.
+`docs/10-capacity-planning.md` rests on them.
 
 Two findings worth keeping:
 
@@ -154,7 +154,7 @@ Deduplicated, measured on the same environment:
 Consecutive z-streams reused only 33% of layers and 13% of bytes — release
 payload images are rebuilt wholesale between z-streams, so each retained
 version costs close to a full payload. This is the basis for
-`docs/11-capacity-planning.md`.
+`docs/10-capacity-planning.md`.
 
 ### Timings (small hosts; treat as upper bounds)
 
@@ -273,7 +273,7 @@ stdin avoids it entirely.
 
 Every script here already uses `python3 - <<EOF`, so the repo is
 unaffected — but shipping a `.py` helper would not work on a hardened host.
-Recorded in `docs/02-fips-stig-rhel9.md` as a constraint for anyone
+Recorded in `docs/appendix-fips-stig.md` as a constraint for anyone
 extending it.
 
 ### Not a bug, but worth knowing
@@ -325,10 +325,10 @@ Be explicit about the gaps.
 - **Architectures other than `amd64`.**
 - **Multi-segment archives.** `archiveSize` was never exceeded, so archive
   splitting is untested.
-- **Recovery procedures** in `10-day2-delta.md` (lost archive, corrupted
+- **Recovery procedures** in `09-day2-delta.md` (lost archive, corrupted
   cache, cache restore from archives).
 - **`oc-mirror delete` and Quay garbage collection.** The pruning workflow
-  in `11-capacity-planning.md` is from upstream documentation and the
+  in `10-capacity-planning.md` is from upstream documentation and the
   observed `DEFAULT_TAG_EXPIRATION: 2w` setting; it has not been executed.
 - **Capacity projections beyond the measured marginal costs.** The
   multi-year model extrapolates from one architecture and one content
