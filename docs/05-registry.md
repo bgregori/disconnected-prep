@@ -205,11 +205,13 @@ printf 'umask 0022\n' >> ~/.bashrc
 ssh -i ~/.ssh/quay_installer -o StrictHostKeyChecking=no \
     "$(id -un)@localhost" 'umask'                      # must print 0022
 
+read -rsp 'Quay init password (8 characters or more): ' QUAY_PASSWORD; echo
+
 ./mirror-registry install \
   --quayHostname registry.airgap.local \
   --quayRoot /opt/quay \
   --initUser init \
-  --initPassword '<password>'
+  --initPassword "${QUAY_PASSWORD}"
 
 # Put it back immediately, and prove it
 sed -i '/^umask 0022$/d' ~/.bashrc
@@ -239,6 +241,18 @@ sudo find /home -maxdepth 2 -type f -name ".[^.]*" \
 > write permission on `/opt`, which you deliberately do not have. The
 > empty directory it leaves is the one the next install wants, so there is
 > nothing to repair.
+
+> ⚠️ **Keep the password off the command line.** `read -rsp` prompts
+> without echoing, so it reaches neither your shell history nor
+> `/proc/<pid>/cmdline`, where any local account can read it. The same
+> applies to the `curl` checks later in this chapter: `-u init` prompts,
+> `-u init:password` does not.
+>
+> `mirror-registry` still takes `--initPassword` as an argument, so the
+> value is visible in `ps` for the duration of the install — unavoidable
+> with this installer, and a reason to treat the `init` account as a
+> build-time credential and rotate it once the push is done. `unset
+> QUAY_PASSWORD` when you are finished with the shell.
 
 > ⚠️ **Enable lingering before the install.** Quay runs as **user**
 > systemd services and `mirror-registry` starts them over its own SSH

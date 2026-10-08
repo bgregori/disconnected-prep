@@ -114,11 +114,16 @@ trap restore_umask EXIT
 warn "Temporarily relaxing this account's umask for the install (V-258044)."
 printf '%s\n' "${UMASK_LINE}" >> "${HOME}/.bashrc"
 
-run_sh "'${BIN}/mirror-registry' install \
-  --quayHostname '${REGISTRY_HOST}' \
-  --quayRoot '${QUAY_ROOT}' \
-  --initUser '${QUAY_USER}' \
-  --initPassword '${QUAY_PASSWORD}'"
+# NOT via run_sh: it echoes the command it runs, and this one carries the
+# password. The transcript is accreditation evidence -- it must not contain
+# a credential. (ps still sees it for the duration; mirror-registry has no
+# stdin option for the password.)
+info "+ ${BIN}/mirror-registry install --quayHostname ${REGISTRY_HOST} --quayRoot ${QUAY_ROOT} --initUser ${QUAY_USER} --initPassword <redacted>"
+"${BIN}/mirror-registry" install \
+  --quayHostname "${REGISTRY_HOST}" \
+  --quayRoot "${QUAY_ROOT}" \
+  --initUser "${QUAY_USER}" \
+  --initPassword "${QUAY_PASSWORD}"
 
 restore_umask
 trap - EXIT

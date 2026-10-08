@@ -128,7 +128,9 @@ Missing step 1 is the single most common disconnected-install failure.
 
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
-curl -s -u init:<password> \
+# -u with no colon: curl prompts, so the password misses both the shell
+# history and /proc/<pid>/cmdline
+curl -s -u init \
   https://registry.airgap.local:8443/v2/_catalog | python3 -m json.tool | head -40
 
 oc adm release info \
