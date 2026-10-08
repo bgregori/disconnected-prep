@@ -178,11 +178,25 @@ loginctl show-user "$USER" | grep Linger       # expect Linger=yes
 # QUAY_ROOT must exist and be yours before the installer runs -- see below
 sudo install -d -o "$(id -un)" -g "$(id -gn)" -m 0755 /opt/quay
 
-umask 0022 && ./mirror-registry install \
+# Closed to everyone except the UID Quay runs as -- see "Permissions" below
+install -d -m 0750 /opt/quay/quay-config /opt/quay/quay-rootCA
+setfacl -m u:101000:rX /opt/quay/quay-config /opt/quay/quay-rootCA
+
+# The installer's own SSH session must create readable files -- see below
+printf 'umask 0022\n' >> ~/.bashrc
+ssh -i ~/.ssh/quay_installer -o StrictHostKeyChecking=no \
+    "$(id -un)@localhost" 'umask'                      # must print 0022
+
+./mirror-registry install \
   --quayHostname registry.airgap.local \
   --quayRoot /opt/quay \
   --initUser init \
   --initPassword '<password>'
+
+# Put it back immediately, and prove it
+sed -i '/^umask 0022$/d' ~/.bashrc
+sudo find /home -maxdepth 2 -type f -name ".[^.]*" \
+  -exec grep -iH -d skip --exclude=.bash_history umask {} \;   # no output
 ```
 
 > ⚠️ **Create `--quayRoot` yourself first.** `mirror-registry` drives an
@@ -197,7 +211,7 @@ umask 0022 && ./mirror-registry install \
 >
 > `install -d` rather than `mkdir`, for the usual two reasons: `sudo` for
 > the root-owned parent with the directory handed to the account that runs
-> the installer, and an explicit `0755` instead of the STIG `umask 0077`,
+> the installer, and an explicit mode instead of the STIG `umask 0077`,
 > which would hand Quay a `0700` directory and trade this failure for the
 > crash-loop below.
 >
@@ -208,44 +222,101 @@ umask 0022 && ./mirror-registry install \
 > empty directory it leaves is the one the next install wants, so there is
 > nothing to repair.
 
-> ⚠️ **Enable lingering before the install, not after.** Quay runs as
-> **user** systemd services, and `mirror-registry` starts them over its own
-> SSH session to localhost. With `Linger=no`, systemd tears the user
-> manager down with that session: the pod is created, its containers never
-> start, and the installer fails ten polls later on
->
-> ```
-> Status code was -1 and not [200]: Request failed:
-> <urlopen error TLS/SSL connection has been closed (EOF)>
-> ```
->
-> against `/health/instance` — which looks like a certificate problem and
-> is not one. `podman ps -a` showing a lone `*-infra` container in
-> `Created`, with no `quay-app`, is the tell. The same missing linger makes
-> `mirror-registry uninstall` exit 2, so the failed install is awkward to
-> clean up as well.
->
-> Lingering is also what keeps the registry running after you log out —
-> including while a cluster depends on it — so it is not merely an install
-> step.
+> ⚠️ **Enable lingering before the install.** Quay runs as **user**
+> systemd services and `mirror-registry` starts them over its own SSH
+> session to localhost, so the user manager has to outlive that session.
+> It is also what keeps the registry running after you log out, with a
+> cluster depending on it. Red Hat requires it either way; doing it first
+> costs nothing.
 
-> ⚠️ **STIG — the `umask 0022` prefix is required.** With the STIG default
-> of `0077`, the installer creates `quay-config` and `quay-rootCA` as `0700`
-> and the Quay container — running as a different UID — cannot read them.
-> The install reports success and the containers then crash-loop with
-> `Permission denied` on `config.yaml`.
+### Permissions, and the umask that actually matters
+
+This is the part that defeats a STIG host, and the obvious fix does not
+work.
+
+Quay reads its configuration as a **non-root UID inside the container**.
+Rootless podman maps that to a high subuid on the host: container UID
+`1001` with a subuid base of `100000` is host UID **`101000`**. A file
+written `0600` by your account is unreadable to it, and Quay dies on
+startup with
+
+```
+find: '/quay-registry/conf/stack/': Permission denied
+open /quay-registry/conf/stack/config.yaml: permission denied
+```
+
+Confirm the two numbers for your host rather than copying mine:
+
+```sh
+# ===== RUN ON: REGISTRY HOST =====
+podman inspect --format '{{.Config.User}}' \
+  registry.redhat.io/quay/quay-rhel8:v3.8.12     # container UID, e.g. 1001
+grep "^$(id -un):" /etc/subuid                   # base, e.g. 100000:65536
+# host UID = base + container UID - 1
+```
+
+**`umask 0022` before the install command does nothing.** The installer
+does not write those files from your shell: it SSHes to localhost with a
+generated key and runs an Ansible playbook, and the files are created in
+*that* session, under the umask PAM gives it — `0077` on a STIG build.
+Verify for yourself:
+
+```sh
+# ===== RUN ON: REGISTRY HOST =====
+ssh -i ~/.ssh/quay_installer -o StrictHostKeyChecking=no \
+    "$(id -un)@localhost" 'umask'       # 0077, whatever your shell says
+```
+
+Pre-creating the directories with a default ACL does not work either, and
+it is worth knowing why: Ansible writes to a temporary file and renames it
+into place, and a default ACL applies to files *created* in a directory,
+not to files *moved* into it. The directory keeps its ACL; the file
+arrives with the mode it was born with.
+
+That leaves the installer's session umask as the only lever, which is why
+the block above appends `umask 0022` to `~/.bashrc` — bash reads it even
+for the non-interactive command sshd runs — and removes it immediately
+afterwards.
+
+> ⚠️ **STIG** That line is a finding while it exists:
+> [V-258044 / RHEL-09-411025](https://www.stigviewer.com/stigs/red_hat_enterprise_linux_9/2026-05-20/finding/V-258044),
+> "RHEL 9 must set the umask value to 077 for all local interactive user
+> accounts", CAT II. The check greps exactly these files. Remove it as
+> soon as the install finishes and run the check command in the block
+> above to evidence that you did — a time-boxed, verified deviation
+> documents far better than a surprise.
+
+The directories stay `0750` with an ACL for that one UID, so the files
+inside being `0644` exposes nothing: no other account on the host can
+traverse in to reach them. That matters because `ssl.key` and
+`rootCA.key` live there.
+
+**If no umask deviation is acceptable at your site**, install without it,
+let the installer fail its own health check, and repair afterwards:
+
+```sh
+# ===== RUN ON: REGISTRY HOST =====
+setfacl -R -m u:101000:rX /opt/quay/quay-config /opt/quay/quay-rootCA
+systemctl --user reset-failed quay-app.service
+systemctl --user restart quay-app.service
+```
+
+Same end state. The cost is a failed Ansible run in your build transcript
+and a crash-looping container in the middle of the procedure, which an
+operator cannot easily distinguish from a real failure — weigh that
+against a deviation you can time-box and prove you reverted.
 
 ### Make the permission fix durable
 
-The installer is not the only thing that writes those directories; restarts
-and upgrades recreate them under whatever umask is in effect.
+The installer is not the only thing that writes those directories —
+restarts and upgrades recreate them, and a recreated directory has no ACL.
 
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
 mkdir -p ~/.config/systemd/user/quay-app.service.d
 cat > ~/.config/systemd/user/quay-app.service.d/fix-perms.conf <<'EOF'
 [Service]
-ExecStartPre=/bin/bash -c 'chmod -R 755 /opt/quay/quay-config /opt/quay/quay-rootCA; chmod 644 /opt/quay/quay-config/* /opt/quay/quay-rootCA/*'
+ExecStartPre=/bin/bash -c 'setfacl -R -m u:101000:rX /opt/quay/quay-config /opt/quay/quay-rootCA'
 EOF
 
 systemctl --user daemon-reload
@@ -257,9 +328,35 @@ systemctl --user restart quay-app.service
 > has nothing to attach it to and silently does nothing — which looks
 > identical to it working.
 >
-> Paths in the drop-in must match your actual `QUAY_ROOT`. Guides that use
-> `/data/quay` while installing to `/opt/quay` produce a drop-in that
-> quietly does nothing.
+> Paths in the drop-in must match your actual `QUAY_ROOT`, and the UID must
+> match the mapping you calculated above. Guides that use `/data/quay`
+> while installing to `/opt/quay` produce a drop-in that quietly does
+> nothing.
+>
+> `setfacl` rather than the `chmod -R 755` older guides use: both get Quay
+> running, but `chmod` re-opens `ssl.key` and `rootCA.key` to every account
+> on the host on every single start, which is a poor trade for a file the
+> container could be granted by name.
+
+### Expect a slow first response
+
+After the install — and after every restart — Quay takes a while to serve.
+The sequence is `502` from nginx with no backend yet, then `503` with
+`registry_gunicorn: false` while the last worker starts, then `200`:
+
+```sh
+# ===== RUN ON: REGISTRY HOST =====
+for i in $(seq 1 40); do
+  printf '%s  ' "$(date +%T)"
+  curl -sk https://registry.airgap.local:8443/health/instance | head -c 160
+  echo; sleep 15
+done
+```
+
+Budget several minutes on a 2 vCPU host sharing with Postgres and Redis.
+`registry_gunicorn: false` is the normal last hold-out and not a failure —
+killing the service here, on the assumption it has hung, is the easiest way
+to turn a working install into a broken one.
 
 ---
 

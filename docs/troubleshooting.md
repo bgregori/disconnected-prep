@@ -208,19 +208,22 @@ See [appendix-byo-registry.md](appendix-byo-registry.md).
 
 ## Quay
 
-### Quay crash-loops after a successful install
+### Quay crash-loops, or the install fails on a TLS EOF
 
-STIG umask. `quay-config` was created `0700` and the container cannot read
-it.
+Quay cannot read `config.yaml`. It runs as a mapped subuid (container
+`1001` -> host `101000`), and the installer wrote the file `0600` under its
+own session umask.
 
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
 ls -ld /opt/quay/quay-config
-podman logs quay-app | tail -40
+ls -l  /opt/quay/quay-config/config.yaml
+journalctl --user -u quay-app --no-pager -n 60   # logs, since the container is removed each restart
 ```
 
-Fix: `umask 0022` for the install, plus the systemd drop-in in
-[05-registry.md](05-registry.md).
+Fix: `setfacl -R -m u:101000:rX` on `quay-config` and `quay-rootCA`, then
+restart `quay-app`. `umask 0022` in your shell does not help — see
+[05-registry.md](05-registry.md#permissions-and-the-umask-that-actually-matters).
 
 ### Quay disappears after logout
 

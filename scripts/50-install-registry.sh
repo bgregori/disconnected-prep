@@ -40,6 +40,19 @@ if [[ ! -d "${QUAY_ROOT}" ]]; then
 fi
 require_space "${QUAY_ROOT}" "${MIN_QUAYROOT_GB:-1}"
 
+# Quay reads its config as a non-root UID inside the container, which
+# rootless podman maps to a subuid on the host: container QUAY_CONTAINER_UID
+# -> subuid_base + QUAY_CONTAINER_UID - 1. Grant that one UID and keep the
+# directories closed to every other account, because ssl.key and
+# rootCA.key live in them.
+SUBUID_BASE="$(awk -F: -v u="$(id -un)" '$1 == u {print $2; exit}' /etc/subuid)"
+[[ -n "${SUBUID_BASE}" ]] || die "No /etc/subuid entry for $(id -un); rootless podman cannot map UIDs."
+QUAY_HOST_UID=$(( SUBUID_BASE + ${QUAY_CONTAINER_UID:-1001} - 1 ))
+info "Quay reads its config as host UID ${QUAY_HOST_UID} (subuid ${SUBUID_BASE} + ${QUAY_CONTAINER_UID:-1001} - 1)"
+
+run install -d -m 0750 "${QUAY_ROOT}/quay-config" "${QUAY_ROOT}/quay-rootCA"
+run setfacl -m "u:${QUAY_HOST_UID}:rX" "${QUAY_ROOT}/quay-config" "${QUAY_ROOT}/quay-rootCA"
+
 if [[ ! -x "${BIN}/mirror-registry" ]]; then
   # The transfer lands the tarball under imports/<tag>/binaries/, not here.
   # 40-stage-transfer.sh normally copies it across; fall back to the import
@@ -76,12 +89,39 @@ fi
 run sudo loginctl enable-linger "${USER}"
 
 info "Installing Quay at ${QUAY_ROOT} for ${REGISTRY_HOST}"
-# umask must be relaxed for the duration of the install only.
-run_sh "umask 0022 && '${BIN}/mirror-registry' install \
+
+# The installer does not write quay-config from THIS shell: it sshes to
+# localhost with a generated key and runs Ansible there, so the files are
+# created under the umask PAM gives that session -- 0077 on a STIG build,
+# whatever this shell is set to. Ansible also renames each file into place,
+# so a default ACL on the directory is not inherited either. The only lever
+# is the umask of the installer's own session, which bash picks up from
+# ~/.bashrc even for the non-interactive command sshd runs.
+#
+# That line is a finding while it exists (V-258044 / RHEL-09-411025: umask
+# 077 for all local interactive user accounts), so it is removed on the way
+# out -- by trap, so an interrupted or failed install cannot leave it behind.
+UMASK_LINE="umask 0022   # disconnected-prep: mirror-registry install only"
+restore_umask() {
+  if grep -qxF "${UMASK_LINE}" "${HOME}/.bashrc" 2>/dev/null; then
+    grep -vxF "${UMASK_LINE}" "${HOME}/.bashrc" > "${HOME}/.bashrc.$$" \
+      && mv "${HOME}/.bashrc.$$" "${HOME}/.bashrc"
+    info "Removed the temporary umask from ~/.bashrc (V-258044)"
+  fi
+}
+trap restore_umask EXIT
+
+warn "Temporarily relaxing this account's umask for the install (V-258044)."
+printf '%s\n' "${UMASK_LINE}" >> "${HOME}/.bashrc"
+
+run_sh "'${BIN}/mirror-registry' install \
   --quayHostname '${REGISTRY_HOST}' \
   --quayRoot '${QUAY_ROOT}' \
   --initUser '${QUAY_USER}' \
   --initPassword '${QUAY_PASSWORD}'"
+
+restore_umask
+trap - EXIT
 
 # --- permission drop-in (applied AFTER install creates the units) ----------
 
@@ -90,9 +130,9 @@ DROPIN="${HOME}/.config/systemd/user/quay-app.service.d"
 run mkdir -p "${DROPIN}"
 cat > "${DROPIN}/fix-perms.conf" <<EOF
 [Service]
-# A restrictive STIG umask causes these directories to be recreated with
-# modes the Quay container cannot read. Re-apply usable modes on each start.
-ExecStartPre=/bin/bash -c 'chmod -R 755 ${QUAY_ROOT}/quay-config ${QUAY_ROOT}/quay-rootCA; chmod 644 ${QUAY_ROOT}/quay-config/* ${QUAY_ROOT}/quay-rootCA/*'
+# Restarts and upgrades recreate these directories, and a recreated
+# directory has no ACL. Re-grant the mapped UID on every start.
+ExecStartPre=/bin/bash -c 'setfacl -R -m u:${QUAY_HOST_UID}:rX ${QUAY_ROOT}/quay-config ${QUAY_ROOT}/quay-rootCA'
 EOF
 run systemctl --user daemon-reload
 run systemctl --user restart quay-app.service || warn "Could not restart quay-app.service; check 'systemctl --user status quay-app'"

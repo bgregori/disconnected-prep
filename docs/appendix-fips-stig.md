@@ -208,12 +208,16 @@ The scripts in this repo call `use_oc_mirror_umask` (in
 `scripts/lib/common.sh`), which sets it and says so.
 
 > ⚠️ **STIG** This applies to **every** `oc-mirror` operation — mirror-to-disk
-> on the connected bastion as much as the push on the registry host. It is
-> easy to notice the umask requirement while installing Quay and miss that
-> the mirroring tool has the same requirement.
+> on the connected bastion as much as the push on the registry host.
 >
 > Verified against `oc-mirror` 4.21 on RHEL 9.6: the warning is emitted at
 > `0077` and absent at `0022`.
+>
+> Unlike the Quay install, this one *is* fixed by setting the umask in
+> your own shell, because `oc-mirror` runs in it. The Quay installer does
+> not — see [Quay cannot read its own
+> config](#quay-cannot-read-its-own-config) — and conflating the two is
+> how people conclude the umask advice is cargo cult.
 
 Do **not** fix this by changing the system-wide umask. Relax it per-shell or
 per-script; the hardened default is there for a reason and changing it is a
@@ -221,64 +225,72 @@ finding.
 
 ---
 
-## A restrictive umask breaks the Quay install
+## Quay cannot read its own config
 
-*Already done by the Quay install in [05-registry.md](05-registry.md),
-which carries both parts.*
+*Handled during the install in [05-registry.md](05-registry.md), which
+carries the ACL, the umask window and the drop-in.*
 
 **Symptom**
 
-`mirror-registry install` reports success. Quay containers then crash-loop:
+`mirror-registry install` fails after ten polls of `/health/instance`:
 
 ```
-Permission denied: '/quay-registry/conf/stack/config.yaml'
+Status code was -1 and not [200]: Request failed:
+<urlopen error TLS/SSL connection has been closed (EOF)>
 ```
+
+or, if it got that far, Quay containers crash-loop with
+
+```
+open /quay-registry/conf/stack/config.yaml: permission denied
+```
+
+The TLS wording is a red herring. Rootless podman publishes the port
+through a userspace proxy that accepts the connection and closes it when
+nothing is listening behind, so a crash-looping `quay-app` presents as a
+TLS fault.
 
 **Cause**
 
-STIG sets `umask 0077` (or `0027`) in `/etc/profile` and
-`/etc/login.defs`. The installer creates `${QUAY_ROOT}/quay-config` and
-`${QUAY_ROOT}/quay-rootCA` with that mask, so they end up `0700`. The Quay
-container runs as a different UID and cannot read them.
+Quay reads its configuration as a non-root UID *inside* the container,
+which rootless podman maps to a high subuid on the host — container
+`1001` with base `100000` is host `101000`. The installer writes
+`config.yaml` over its own SSH session to localhost, under the umask PAM
+gives that session: `0077` on a STIG build. A `0600` file owned by your
+account is unreadable to the mapped UID.
 
-**Fix — two parts, both needed**
+Note what this is not. `EACCES` ("Permission denied") is ordinary file
+permission; fapolicyd denials are `EPERM` ("Operation not permitted") —
+see [fapolicyd blocks binaries you just
+installed](#fapolicyd-blocks-binaries-you-just-installed). Stopping
+fapolicyd for the install, as some guides suggest, does nothing here.
 
-Relax the umask for the installer only:
+**Fix**
 
-```sh
-# ===== RUN ON: REGISTRY HOST =====
-umask 0022 && ./mirror-registry install \
-  --quayHostname "${REGISTRY_HOST}" \
-  --quayRoot "${QUAY_ROOT}" \
-  --initUser init \
-  --initPassword '<password>'
-```
-
-Then make it durable, because the installer is not the only thing that
-writes those directories — upgrades and restarts recreate them:
+Grant the mapped UID by name and keep the directory closed to everyone
+else:
 
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
-mkdir -p ~/.config/systemd/user/quay-app.service.d
-cat > ~/.config/systemd/user/quay-app.service.d/fix-perms.conf <<EOF
-[Service]
-ExecStartPre=/bin/bash -c 'chmod -R 755 ${QUAY_ROOT}/quay-config ${QUAY_ROOT}/quay-rootCA; chmod 644 ${QUAY_ROOT}/quay-config/* ${QUAY_ROOT}/quay-rootCA/*'
-EOF
-systemctl --user daemon-reload
-systemctl --user restart quay-app.service
+install -d -m 0750 "${QUAY_ROOT}/quay-config" "${QUAY_ROOT}/quay-rootCA"
+setfacl -R -m u:101000:rX "${QUAY_ROOT}/quay-config" "${QUAY_ROOT}/quay-rootCA"
 ```
 
-> ⚠️ **STIG** Order matters. Create the drop-in **after** `mirror-registry
-> install`, because the unit must exist before `daemon-reload` will pick up
-> a drop-in for it. Creating it first silently does nothing.
+Two things that look like fixes and are not:
 
-Check which umask you have:
+- **`umask 0022` before the install command.** It applies to your shell;
+  the files are written by the installer's SSH session, which never sees
+  it. Check with `ssh -i ~/.ssh/quay_installer "$(id -un)@localhost"
+  'umask'`.
+- **A default ACL on a pre-created directory.** Ansible writes a temp file
+  and renames it into place; default ACLs apply at creation, not at
+  rename. The directory keeps the ACL, the file arrives `0600` regardless.
 
-```sh
-# ===== RUN ON: REGISTRY HOST =====
-umask                       # current shell
-grep -rE '^\s*umask' /etc/profile /etc/bashrc /etc/login.defs 2>/dev/null
-```
+[05-registry.md](05-registry.md) resolves this by relaxing the umask of
+the installer's own session for the length of the install — a
+[V-258044](https://www.stigviewer.com/stigs/red_hat_enterprise_linux_9/2026-05-20/finding/V-258044)
+deviation to time-box and revert — with the post-install repair documented
+as the no-deviation alternative.
 
 ---
 
@@ -537,7 +549,7 @@ chmod 600 "${RH_PULL_SECRET}" "${MIRROR_PULL_SECRET}"
 | `fork/exec /tmp/oc-mirror-*: operation not permitted` | fapolicyd; the v1 shim unpacks to /tmp | use `scripts/13-catalog.sh` instead of `oc-mirror list --v1` |
 | `no space left on device` naming `/var/tmp` | `TMPDIR` defaults to the 5 GB STIG partition | `export TMPDIR=` a roomy, exec-capable path |
 | `Permission denied`, AVC in audit log | SELinux label | `restorecon -v` |
-| Quay crash-loops after a clean install | umask 0077 | `umask 0022` + systemd drop-in |
+| Quay crash-loops, or install fails on a TLS EOF | `config.yaml` `0600`; Quay reads it as a mapped subuid | `setfacl -m u:101000:rX` + systemd drop-in |
 | Quay gone after logout | no linger | `loginctl enable-linger` |
 | Mirror dies when SSH drops | no linger / no tmux | `systemd-run --scope --user tmux` |
 | `bind: permission denied` on 55000 | port in use | `--port 56000` |
