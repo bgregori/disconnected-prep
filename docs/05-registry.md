@@ -397,6 +397,27 @@ Verify — this must succeed without `-k`:
 curl -I https://registry.airgap.local:8443/v2/
 ```
 
+**`401` is the pass.** The registry API answering "who are you" is proof of
+both things this step is about: the certificate verified against the host
+trust store, and Quay is serving `/v2/` rather than merely listening. Expect
+
+```
+HTTP/2 401
+www-authenticate: Bearer realm="https://registry.airgap.local:8443/v2/auth"
+docker-distribution-api-version: registry/2.0
+```
+
+A `200` here would be the surprising answer — the API requires credentials.
+Failure looks nothing like a status code:
+
+```
+curl: (60) SSL certificate problem: unable to get local issuer certificate
+```
+
+No HTTP response at all, which means the CA did not land in the trust store
+or `update-ca-trust` was not run. That is also precisely what `-k` would
+have concealed — useful while waiting for Quay to boot, wrong here.
+
 > Do not reach for `--insecure` or `--dest-tls-verify=false`. It hides a
 > broken trust chain that the cluster hits later, when diagnosis is far
 > harder. In an accredited environment, disabled TLS verification in a build
