@@ -31,14 +31,20 @@ environments it is.
 
 ## Configure
 
-In `config/prep.env`:
+Two values, used throughout: the registry FQDN (`artifactory.corp.local`
+below) and its port (`443`). Working by hand you type them into the
+commands; there is no Quay to install, so nothing else from
+[05-registry.md](05-registry.md) applies.
 
-```sh
-# ===== EDIT IN: config/prep.env on the HOST YOU PUSH FROM =====
-REGISTRY_HOST="artifactory.corp.local"
-REGISTRY_PORT="443"
-# QUAY_ROOT, QUAY_USER, QUAY_PASSWORD are unused -- skip 50-install-registry.sh
-```
+> Using the scripts? Set them in `config/prep.env` and skip
+> `50-install-registry.sh` entirely:
+>
+> ```sh
+> # ===== EDIT IN: config/prep.env on the HOST YOU PUSH FROM =====
+> REGISTRY_HOST="artifactory.corp.local"
+> REGISTRY_PORT="443"
+> # QUAY_ROOT, QUAY_USER, QUAY_PASSWORD are unused
+> ```
 
 ### Credentials
 
@@ -107,13 +113,13 @@ Artifactory and Harbor often restrict how deeply repositories may nest.
 oc-mirror --v2 --max-nested-paths 2 ...
 ```
 
-In `config/prep.env`:
-
-```sh
-# ===== EDIT IN: config/prep.env on the HOST YOU PUSH FROM =====
-USE_MAX_NESTED_PATHS="true"
-MAX_NESTED_PATHS="2"
-```
+> Using the scripts? The flag above is set by:
+>
+> ```sh
+> # ===== EDIT IN: config/prep.env on the HOST YOU PUSH FROM =====
+> USE_MAX_NESTED_PATHS="true"
+> MAX_NESTED_PATHS="2"
+> ```
 
 Set this on the **first** push. Changing it later rewrites every image path,
 invalidating the IDMS already applied to a cluster.

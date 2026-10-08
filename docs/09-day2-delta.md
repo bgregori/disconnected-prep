@@ -74,13 +74,20 @@ promise a customer that every delta is small.
 
 ### 1. Update the configuration
 
-For a z-stream upgrade, edit `config/prep.env`:
+For a z-stream upgrade, two things change: the version you are mirroring
+and the tag that identifies this run. By hand, the version goes into the
+ImageSetConfiguration you edit below, and the tag is the export directory
+you create — `2026-12-01_z-stream-4.21.28` in the examples that follow.
+Dating the tag and naming its purpose is what makes the export directory
+self-describing a year later.
 
-```sh
-# ===== EDIT IN: config/prep.env on the CONNECTED BASTION =====
-OCP_VERSION="4.21.28"        # was 4.21.26
-EXPORT_TAG="2026-12-01_z-stream-4.21.28"
-```
+> Using the scripts? Both are in `config/prep.env`:
+>
+> ```sh
+> # ===== EDIT IN: config/prep.env on the CONNECTED BASTION =====
+> OCP_VERSION="4.21.28"        # was 4.21.26
+> EXPORT_TAG="2026-12-01_z-stream-4.21.28"
+> ```
 
 Then regenerate with the same profiles as before:
 

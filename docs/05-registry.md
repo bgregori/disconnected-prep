@@ -68,16 +68,34 @@ not install it. The next section queries it before Quay exists.
 
 ## Before you start
 
-Set in `config/prep.env`:
+Five values run through the rest of this chapter. Decide them now — working
+by hand you type them into the commands as you go, and they are the only
+things to change if your names differ from the examples.
 
-```sh
-# ===== EDIT IN: config/prep.env on the REGISTRY HOST =====
-REGISTRY_HOST="registry.airgap.local"  # FQDN, resolvable from cluster nodes
-REGISTRY_PORT="8443"
-QUAY_ROOT="/opt/quay"                  # megabytes, not the image store
-QUAY_USER="init"
-QUAY_PASSWORD="<at least 8 characters>"
-```
+| Value | Example | Why it matters |
+|---|---|---|
+| Registry FQDN | `registry.airgap.local` | Must resolve **from the cluster nodes**, and must be fully qualified: `oc-mirror` reads an unqualified `docker://` target as a repository name. The TLS certificate is issued for whatever you install with. |
+| Port | `8443` | `mirror-registry`'s default. Opened in firewalld below. |
+| Quay root | `/opt/quay` | Config and certificates only — megabytes, not the image store. See the callout below. |
+| Initial user | `init` | Quay's first account; you authenticate the push with it. |
+| Initial password | 8 characters or more | Quay refuses anything shorter. |
+
+The FQDN is the one to get right first time. It is baked into the
+certificate, the auth file, the `IDMS` the cluster applies, and every image
+reference in the mirror — changing it later means re-pushing and
+re-generating the handoff.
+
+> Using the scripts? The same five live in `config/prep.env`, and nothing
+> else in this chapter needs editing:
+>
+> ```sh
+> # ===== EDIT IN: config/prep.env on the REGISTRY HOST =====
+> REGISTRY_HOST="registry.airgap.local"
+> REGISTRY_PORT="8443"
+> QUAY_ROOT="/opt/quay"
+> QUAY_USER="init"
+> QUAY_PASSWORD="<at least 8 characters>"
+> ```
 
 > ### ⚠️ `--quayRoot` is **not** where the images go
 >
