@@ -74,7 +74,7 @@ Set in `config/prep.env`:
 # ===== EDIT IN: config/prep.env on the REGISTRY HOST =====
 REGISTRY_HOST="registry.airgap.local"  # FQDN, resolvable from cluster nodes
 REGISTRY_PORT="8443"
-QUAY_ROOT="/opt/quay"                  # on a partition with 500 GB+
+QUAY_ROOT="/opt/quay"                  # megabytes, not the image store
 QUAY_USER="init"
 QUAY_PASSWORD="<at least 8 characters>"
 ```
@@ -158,12 +158,31 @@ tar -xzf mirror-registry.tar.gz
 sudo firewall-cmd --add-port 8443/tcp --permanent
 sudo firewall-cmd --reload
 
+# QUAY_ROOT must exist and be yours before the installer runs -- see below
+sudo install -d -o "$(id -un)" -g "$(id -gn)" -m 0755 /opt/quay
+
 umask 0022 && ./mirror-registry install \
   --quayHostname registry.airgap.local \
   --quayRoot /opt/quay \
   --initUser init \
   --initPassword '<password>'
 ```
+
+> ⚠️ **Create `--quayRoot` yourself first.** `mirror-registry` drives an
+> embedded Ansible playbook as the invoking user, and that user cannot
+> create a directory in a root-owned parent like `/opt`. The install dies
+> a dozen tasks in with
+>
+> ```
+> There was an issue creating /opt/quay as requested:
+> [Errno 13] Permission denied: b'/opt/quay'
+> ```
+>
+> `install -d` rather than `mkdir`, for the usual two reasons: `sudo` for
+> the root-owned parent with the directory handed to the account that runs
+> the installer, and an explicit `0755` instead of the STIG `umask 0077`,
+> which would hand Quay a `0700` directory and trade this failure for the
+> crash-loop below.
 
 > ⚠️ **STIG — the `umask 0022` prefix is required.** With the STIG default
 > of `0077`, the installer creates `quay-config` and `quay-rootCA` as `0700`

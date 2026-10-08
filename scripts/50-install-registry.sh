@@ -31,6 +31,13 @@ if command -v podman >/dev/null 2>&1; then
     require_space "${GRAPH_ROOT}" "${MIN_QUAY_GB:-200}"
   fi
 fi
+# mirror-registry drives an embedded Ansible playbook as the invoking user,
+# which cannot create a directory in a root-owned parent such as /opt. Make
+# it here, owned by this account, with an explicit mode: under the STIG
+# umask 0077 it would otherwise be 0700 and Quay could not read it.
+if [[ ! -d "${QUAY_ROOT}" ]]; then
+  run sudo install -d -o "$(id -un)" -g "$(id -gn)" -m 0755 "${QUAY_ROOT}"
+fi
 require_space "${QUAY_ROOT}" "${MIN_QUAYROOT_GB:-1}"
 
 if [[ ! -x "${BIN}/mirror-registry" ]]; then
