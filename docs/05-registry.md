@@ -376,6 +376,10 @@ Budget several minutes on a 2 vCPU host sharing with Postgres and Redis.
 killing the service here, on the assumption it has hung, is the easiest way
 to turn a working install into a broken one.
 
+Tailing the logs while you wait is reassuring right up until Quay prints
+`AssertionError` tracebacks from `gevent`. Those are normal startup noise
+on a healthy instance — judge by `/health/instance`, not by the log.
+
 ---
 
 ## Trust the CA
@@ -485,9 +489,6 @@ jq -r '.auths | keys[]' ${OCP_AIRGAP_ROOT}/binaries/mirror-pull-secret.json
 A registry you cannot log in to — a token-based enterprise one, or any
 registry not yet reachable — still needs the file assembled by hand. See
 [appendix-byo-registry.md](appendix-byo-registry.md#credentials).
-
-Quay's startup logs contain `AssertionError` tracebacks from `gevent`.
-These are normal noise, not a failure.
 
 ---
 
