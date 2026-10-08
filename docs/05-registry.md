@@ -494,18 +494,51 @@ registry not yet reachable — still needs the file assembled by hand. See
 
 ## Verify from somewhere else
 
-The registry working on the registry host proves very little. The cluster nodes
-are what matter.
+The registry working on the registry host proves very little. Resolving a
+name there, and reaching a port on localhost, says nothing about what the
+cluster nodes will see.
+
+What you are testing from here is **DNS, routing and that the registry
+answers** — not TLS trust. This host has no reason to trust a CA that
+exists only on the registry host, so `-k` is correct here, and is the one
+place in this chapter where it is:
 
 ```sh
 # ===== RUN ON: A NODE-NETWORK HOST (not the registry host) =====
-# from a host on the node network -- NOT the registry host
-dig +short registry.airgap.local
-curl -I https://registry.airgap.local:8443/v2/
+dig +short registry.airgap.local            # the registry host's IP
+
+curl -kI https://registry.airgap.local:8443/v2/      # HTTP/2 401
 ```
 
-If this fails, fix it now. The symptom later is an agent-based install that
-hangs at bootstrap with no obvious cause.
+`401` again means the registry API is answering. Without `-k` you would get
+
+```
+curl: (60) SSL certificate problem: unable to get local issuer certificate
+```
+
+which is **expected from an untrusting host** and hides whether DNS and
+routing actually work. Do not chase it, and do not copy the CA around the
+estate to make it go away — the cluster gets this CA properly, as
+`additionalTrustBundle` in `install-config.yaml`, built from the
+`rootCA.pem` in the handoff bundle.
+
+There is one thing worth checking while you are here, because it is cheap
+and it fails late and expensively: that the certificate was issued for the
+name the cluster will actually use.
+
+```sh
+# ===== RUN ON: A NODE-NETWORK HOST (not the registry host) =====
+openssl s_client -connect registry.airgap.local:8443 \
+  -servername registry.airgap.local </dev/null 2>/dev/null |
+  openssl x509 -noout -subject -ext subjectAltName
+```
+
+The `subjectAltName` must contain the FQDN you will put in
+`imageDigestSources` — if `--quayHostname` was given a short name or the
+wrong domain, this is where it shows, rather than mid-install.
+
+If any of this fails, fix it now. The symptom later is an agent-based
+install that hangs at bootstrap with no obvious cause.
 
 ---
 
