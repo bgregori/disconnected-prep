@@ -202,6 +202,15 @@ Without this repo, the delta cycle is six commands. The only thing that
 makes it a *delta* is reusing the same `--cache-dir` and the same `file://`
 destination.
 
+Steps 3 and 5 are the long ones. Run each in a session that survives a
+dropped connection, on whichever host you are on at the time:
+
+```sh
+# ===== RUN ON: BOTH HOSTS =====
+systemd-run --scope --user tmux new -s day2
+# detach with Ctrl-b d · reattach later with: tmux attach -t day2
+```
+
 **Connected bastion**
 
 ```sh

@@ -40,6 +40,22 @@ oc version --client
 
 ## Push
 
+This runs for hours, and a dropped SSH session kills it. Start a session
+that survives one, then run the push inside it:
+
+```sh
+# ===== RUN ON: REGISTRY HOST =====
+systemd-run --scope --user tmux new -s push
+# detach with Ctrl-b d · reattach later with: tmux attach -t push
+```
+
+A bare `tmux new` is not enough — without the `systemd-run --scope`
+wrapper the session belongs to your login scope and dies with it.
+Lingering is already enabled from the Quay install, which is the other
+half of surviving a logout.
+
+Then, inside that session:
+
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
 cd ${OCP_AIRGAP_ROOT}
@@ -71,7 +87,8 @@ This is **disk-to-mirror (d2m)**. Points to note:
   [the appendix](appendix-fips-stig.md#tmpdir-defaults-to-a-stig-partition)
   has the why.
 
-Expect hours. Use tmux.
+Expect hours: 27 minutes for 202 images on the validated 2 vCPU host, and
+it scales with the content set.
 
 ---
 
