@@ -6,6 +6,83 @@ hosts — two of these are expensive to fix later.
 Work this chapter top to bottom. It ends with the tooling installed, which
 every later chapter assumes.
 
+---
+
+## Where the prep tree lives
+
+Everything this repository creates goes under one directory, named
+`OCP_AIRGAP_ROOT` throughout. **Decide it now and export it**, because every
+later command is written in terms of it:
+
+```sh
+# ===== RUN ON: BOTH HOSTS =====
+export OCP_AIRGAP_ROOT=/data/ocp-airgap     # or ~/ocp-airgap -- see below
+sudo install -d -o "$(id -un)" -g "$(id -gn)" -m 0755 "${OCP_AIRGAP_ROOT}"
+```
+
+`install -d` rather than `mkdir -p`, for two reasons that both bite here: a
+volume you provisioned for this is root-owned, so the directory has to be
+created with `sudo` and handed to the account that will write into it; and
+`install` applies mode `0755` directly instead of subtracting the STIG
+`umask 0077`, which would otherwise leave the tree `0700` and unreadable to
+every other account and container on the host.
+
+> ⚠️ **STIG `$HOME` is usually the wrong choice.** The hardened builds put
+> `/home` on its own file system, sized for user files and frequently
+> quota'd, `nodev,nosuid`, or on NFS. This workflow needs roughly 55 GiB on
+> the connected bastion and 85 GiB on the registry host for a single
+> 29 GB mirror, and more for every version you retain — see
+> [10-capacity-planning.md](10-capacity-planning.md). Put `OCP_AIRGAP_ROOT` on
+> the volume you provisioned for it. `~/ocp-airgap` is fine only where
+> `/home` is part of a large root file system, which on a STIG build it
+> usually is not.
+
+The two hosts are configured separately, so they do not have to match: a
+bastion with one large root volume can use `~/ocp-airgap` while the
+registry host uses `/data/ocp-airgap`. What must not happen is the value
+changing between one command and the next on the same host.
+
+**Make it durable.** These are multi-hour runs you will reconnect to, and
+an `export` dies with the shell — the failure mode is `cd ${OCP_AIRGAP_ROOT}`
+silently landing you in your home directory. Set it for every login shell,
+alongside the `TMPDIR` this workflow also needs:
+
+```sh
+# ===== RUN ON: BOTH HOSTS =====
+sudo tee /etc/profile.d/ocp-airgap.sh <<'EOF'
+export OCP_AIRGAP_ROOT=/data/ocp-airgap
+export TMPDIR=/data/tmp
+EOF
+sudo chmod 0644 /etc/profile.d/ocp-airgap.sh
+sudo restorecon -v /etc/profile.d/ocp-airgap.sh
+```
+
+Log out and back in, or `source /etc/profile.d/ocp-airgap.sh`, then confirm
+before running anything that writes:
+
+```sh
+# ===== RUN ON: BOTH HOSTS =====
+echo "${OCP_AIRGAP_ROOT:?not set -- see 01-prerequisites.md}"
+df -h "${OCP_AIRGAP_ROOT}"
+```
+
+Chapters from here on open with that same `${OCP_AIRGAP_ROOT:?...}` guard. It
+costs nothing when the variable is set and stops the command running
+against the wrong directory when it is not.
+
+> Using the scripts? Set `OCP_AIRGAP_ROOT` in `config/prep.env` instead — it
+> is the same variable, and the file honours an exported value if you
+> have one. Everything else in `prep.env` derives from it, so that one
+> line moves the whole tree.
+
+An already-running `tmux` server keeps the environment it was started with.
+After adding the drop-in, start a new session — or `tmux kill-server`
+first — or your long runs still use the old values.
+
+---
+
+## Preflight
+
 Preflight runs **twice**. The first pass checks the host itself and runs on
 a bare, freshly provisioned host. The second comes after
 [Install the tooling](#install-the-tooling) below.
@@ -43,6 +120,8 @@ One block is marked connected-only. Everything else applies to both.
 
 ```sh
 # ===== RUN ON: BOTH HOSTS =====
+: "${OCP_AIRGAP_ROOT:?set it first -- see 'Where the prep tree lives' above}"
+
 # --- OS and hardening posture ---
 cat /etc/redhat-release
 cat /proc/sys/crypto/fips_enabled           # 1 = host in FIPS mode
@@ -54,8 +133,8 @@ systemctl is-active fapolicyd firewalld
 ss -ltn | grep -q ':55000 ' && echo "PORT 55000 IN USE" || echo "port 55000 free"
 
 # --- disk ---
-# ~/ocp-airgap does not exist yet, so check the filesystem it will land on.
-df -h ~
+# The tree is empty at this point; what matters is the file system under it.
+df -h "${OCP_AIRGAP_ROOT}"
 
 # --- temp space ---
 # Unset, oc-mirror stages blobs in /var/tmp and unpacks its helper into
@@ -227,29 +306,21 @@ unusual.
 > **`/var/tmp` also grows during the push.** oc-mirror and the
 > containers/image library it embeds stage temporary blobs in `TMPDIR`,
 > which defaults to `/var/tmp` — a separate 5 GB filesystem on a STIG'd
-> build. Export it to somewhere with room before mirroring, on a
-> filesystem that permits execution:
+> build. It needs somewhere with room, on a filesystem that permits
+> execution:
 >
 > ```sh
 > # ===== RUN ON: BOTH HOSTS =====
-> mkdir -p /data/tmp && export TMPDIR=/data/tmp
+> mkdir -p /data/tmp
 > ```
 >
-> That `export` dies with the shell, and these are multi-hour runs you will
-> reconnect to after a dropped session — the one moment you are least
-> likely to remember re-exporting it. On a host dedicated to this workflow,
-> set it for every login shell:
->
-> ```sh
-> # ===== RUN ON: BOTH HOSTS =====
-> echo 'export TMPDIR=/data/tmp' | sudo tee /etc/profile.d/oc-mirror-tmpdir.sh
-> sudo chmod 0644 /etc/profile.d/oc-mirror-tmpdir.sh
-> sudo restorecon -v /etc/profile.d/oc-mirror-tmpdir.sh
-> ```
->
-> To keep it to one account instead, append the same line to
-> `~/.bash_profile`. An already-running `tmux` server keeps the environment
-> it was started with, so start a new session afterwards.
+> The `/etc/profile.d/ocp-airgap.sh` drop-in from
+> [Where the prep tree lives](#where-the-prep-tree-lives) already exports
+> it for every login shell, which is what matters here: these are
+> multi-hour runs you reconnect to, and a per-shell `export TMPDIR=` is
+> the one thing you will forget after a dropped session. Size the
+> filesystem you point it at — this is a second consumer of disk, separate
+> from `OCP_AIRGAP_ROOT`.
 >
 > With the scripts, set `MIRROR_TMPDIR` in `config/prep.env` instead. For why
 > `/var/tmp` is too small and what else is in the way, see
@@ -405,8 +476,8 @@ and [05-registry.md](05-registry.md) stages it into place on arrival.
 
 ```sh
 # ===== RUN ON: CONNECTED BASTION =====
-mkdir -p ~/ocp-airgap/{binaries,config,cache,mirror-out,exports}
-cd ~/ocp-airgap/binaries
+mkdir -p ${OCP_AIRGAP_ROOT}/{binaries,config,cache,mirror-out,exports}
+cd ${OCP_AIRGAP_ROOT}/binaries
 
 base=https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable-4.21
 
@@ -449,8 +520,8 @@ Download it from
 
 ```sh
 # ===== RUN ON: CONNECTED BASTION =====
-cp ~/Downloads/pull-secret.json ~/ocp-airgap/binaries/pull-secret.json
-chmod 600 ~/ocp-airgap/binaries/pull-secret.json
+cp ~/Downloads/pull-secret.json ${OCP_AIRGAP_ROOT}/binaries/pull-secret.json
+chmod 600 ${OCP_AIRGAP_ROOT}/binaries/pull-secret.json
 ```
 
 > ⚠️ **STIG** Connected bastion only. Do not carry it across the airgap.
@@ -481,11 +552,12 @@ oc version --client
 ( umask 0022; oc-mirror version --v2 >/dev/null && echo "oc-mirror OK" )
 
 # --- disk, on the filesystems that actually fill up ---
-df -h ~/ocp-airgap/cache          # layer cache
-df -h ~/ocp-airgap/mirror-out     # archives
+df -h ${OCP_AIRGAP_ROOT}/cache          # layer cache
+df -h ${OCP_AIRGAP_ROOT}/mirror-out     # archives
 
 # --- credentials ---
-jq -e '.auths["registry.redhat.io"]' ~/ocp-airgap/binaries/pull-secret.json \
+jq -e '.auths["registry.redhat.io"]' \
+  ${OCP_AIRGAP_ROOT}/binaries/pull-secret.json \
   >/dev/null && echo "pull secret has registry.redhat.io"
 ```
 

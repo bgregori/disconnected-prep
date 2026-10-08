@@ -54,6 +54,11 @@ load_env() {
   # scope is sufficient.
   # shellcheck disable=SC1090
   source "${env_file}"
+  # OCP_AIRGAP_ROOT resolves from the environment first (prep.env uses :-),
+  # so an exported value from /etc/profile.d wins over the file's default.
+  # Print what it resolved to: two sources, one path, and the transcript
+  # should say which one won.
+  info "OCP_AIRGAP_ROOT: ${OCP_AIRGAP_ROOT:-<unset>}"
 }
 
 require_vars() {

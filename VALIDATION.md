@@ -250,7 +250,7 @@ on real hardware. Listed worst-first.
 20. **The "binaries already transferred" marker was per-export.** It lived
     in the export directory, which is new every run, so each delta
     re-shipped ~840 MB of tooling. Moved to
-    `${PREP_ROOT}/.binaries-transferred`.
+    `${OCP_AIRGAP_ROOT}/.binaries-transferred`.
 21. **The size estimator sampled a heavy-tailed distribution** and swung
     2.5× between runs; see above.
 

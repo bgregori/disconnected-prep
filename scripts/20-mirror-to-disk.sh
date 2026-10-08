@@ -16,7 +16,7 @@
 
 source "$(dirname "$0")/lib/common.sh"
 load_env
-require_vars PREP_ROOT MIRROR_OUT CACHE_DIR IMAGESET_CONFIG RH_PULL_SECRET EXPORT_TAG
+require_vars OCP_AIRGAP_ROOT MIRROR_OUT CACHE_DIR IMAGESET_CONFIG RH_PULL_SECRET EXPORT_TAG
 require_cmds oc-mirror
 use_oc_mirror_umask
 

@@ -5,23 +5,23 @@
 # The transfer deposits everything under ${IMPORTS_DIR}/${EXPORT_TAG}/, but
 # the rest of the disconnected-side tooling expects the same prep tree
 # layout as the connected bastion -- 50-install-registry.sh looks for
-# ${PREP_ROOT}/binaries/mirror-registry.tar.gz, and prep.env points
-# MIRROR_PULL_SECRET at ${PREP_ROOT}/binaries/. This bridges the two.
+# ${OCP_AIRGAP_ROOT}/binaries/mirror-registry.tar.gz, and prep.env points
+# MIRROR_PULL_SECRET at ${OCP_AIRGAP_ROOT}/binaries/. This bridges the two.
 #
 # Idempotent: safe to re-run, and a no-op on later deltas, which carry
 # archives only.
 
 source "$(dirname "$0")/lib/common.sh"
 load_env
-require_vars PREP_ROOT IMPORTS_DIR EXPORT_TAG
+require_vars OCP_AIRGAP_ROOT IMPORTS_DIR EXPORT_TAG
 require_cmds tar sudo
 
 IMPORT="${IMPORTS_DIR}/${EXPORT_TAG}"
-BIN="${PREP_ROOT}/binaries"
+BIN="${OCP_AIRGAP_ROOT}/binaries"
 
 [[ -d "${IMPORT}" ]] || die "No import at ${IMPORT}. Transfer it first -- see docs/04-transfer.md."
 
-run mkdir -p "${BIN}" "${PREP_ROOT}/config" "${CACHE_DIR}"
+run mkdir -p "${BIN}" "${OCP_AIRGAP_ROOT}/config" "${CACHE_DIR}"
 
 if [[ -d "${IMPORT}/binaries" ]]; then
   info "Staging tooling from ${IMPORT}/binaries into ${BIN}"
@@ -31,7 +31,7 @@ else
   [[ -f "${BIN}/mirror-registry.tar.gz" ]] \
     || die "No binaries/ here and none staged previously in ${BIN}.
 This looks like a first transfer packaged without the tooling. On the
-connected bastion, delete ${PREP_ROOT}/.binaries-transferred and re-run
+connected bastion, delete ${OCP_AIRGAP_ROOT}/.binaries-transferred and re-run
 scripts/30-package-transfer.sh."
 fi
 

@@ -8,9 +8,9 @@
 
 source "$(dirname "$0")/lib/common.sh"
 load_env
-require_vars PREP_ROOT IMPORTS_DIR EXPORT_TAG REGISTRY_HOST REGISTRY_PORT QUAY_ROOT OCP_VERSION MIRROR_PULL_SECRET
+require_vars OCP_AIRGAP_ROOT IMPORTS_DIR EXPORT_TAG REGISTRY_HOST REGISTRY_PORT QUAY_ROOT OCP_VERSION MIRROR_PULL_SECRET
 
-OUT="${PREP_ROOT}/handoff/${EXPORT_TAG}"
+OUT="${OCP_AIRGAP_ROOT}/handoff/${EXPORT_TAG}"
 CR="${IMPORTS_DIR}/${EXPORT_TAG}/working-dir/cluster-resources"
 [[ -d "${CR}" ]] || die "No cluster-resources at ${CR}. Run ./scripts/60-push-to-registry.sh."
 
@@ -24,8 +24,8 @@ run chmod 600 "${OUT}/pull-secret.json"
 # openshift-install-fips is extracted into binaries/; oc is normally on PATH
 # in /usr/local/bin. Look in both places so the bundle is complete either way.
 for b in openshift-install-fips oc; do
-  if [[ -f "${PREP_ROOT}/binaries/${b}" ]]; then
-    run cp "${PREP_ROOT}/binaries/${b}" "${OUT}/bin/"
+  if [[ -f "${OCP_AIRGAP_ROOT}/binaries/${b}" ]]; then
+    run cp "${OCP_AIRGAP_ROOT}/binaries/${b}" "${OUT}/bin/"
   elif src=$(command -v "${b}" 2>/dev/null); then
     run cp "${src}" "${OUT}/bin/"
   else

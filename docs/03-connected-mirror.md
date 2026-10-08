@@ -25,14 +25,15 @@ missing ImageSetConfiguration means chapter 2 was.
 
 Installed in
 [01-prerequisites.md](01-prerequisites.md#install-the-tooling), along with
-the pull secret at `~/ocp-airgap/binaries/pull-secret.json`. Confirm before
-starting a long run:
+the pull secret at `${OCP_AIRGAP_ROOT}/binaries/pull-secret.json`.
+Confirm before starting a long run:
 
 ```sh
 # ===== RUN ON: CONNECTED BASTION =====
+: "${OCP_AIRGAP_ROOT:?set it first -- see 01-prerequisites.md}"
 oc version --client
 ( umask 0022; oc-mirror version --v2 >/dev/null && echo "oc-mirror OK" )
-ls ~/ocp-airgap/config/imageset-config.yaml
+ls ${OCP_AIRGAP_ROOT}/config/imageset-config.yaml
 ```
 
 ---
@@ -58,7 +59,7 @@ to your login session scope and dies with it.
 
 ```sh
 # ===== RUN ON: CONNECTED BASTION =====
-cd ~/ocp-airgap
+cd ${OCP_AIRGAP_ROOT}
 
 umask 0022
 export TMPDIR=/data/tmp
@@ -80,7 +81,7 @@ oc-mirror --v2 \
 > dies partway through on `no space left on device`. The target needs room
 > and must permit execution. Set it durably rather than retyping it after
 > every reconnect —
-> [01-prerequisites.md](01-prerequisites.md#disk-concretely) has the
+> [01-prerequisites.md](01-prerequisites.md#where-the-prep-tree-lives) has the
 > drop-in, and
 > [the appendix](appendix-fips-stig.md#tmpdir-defaults-to-a-stig-partition)
 > has the why.
@@ -117,7 +118,7 @@ So: one persistent `MIRROR_OUT`, and dated copies staged out of it for
 transport.
 
 ```
-~/ocp-airgap/
+${OCP_AIRGAP_ROOT}/                 e.g. /data/ocp-airgap
 ├── cache/                    PERSISTENT  layer cache (--cache-dir)
 ├── mirror-out/               PERSISTENT  m2d destination; history lives here
 │   ├── mirror_000001.tar                 current run's archives
@@ -143,8 +144,8 @@ Logs stream to the terminal and to
 
 ```sh
 # ===== RUN ON: CONNECTED BASTION =====
-du -sh ~/ocp-airgap/cache ~/ocp-airgap/mirror-out
-tail -f ~/ocp-airgap/mirror-out/working-dir/logs/oc-mirror-*.log
+du -sh ${OCP_AIRGAP_ROOT}/cache ${OCP_AIRGAP_ROOT}/mirror-out
+tail -f ${OCP_AIRGAP_ROOT}/mirror-out/working-dir/logs/oc-mirror-*.log
 ```
 
 If the upstream registry throttles, reduce parallelism:
@@ -160,8 +161,15 @@ reused. You do not need to start clean.
 
 ## Stage for transfer
 
+Everything here is under `${OCP_AIRGAP_ROOT}`, including `exports/` —
+the destination is `${OCP_AIRGAP_ROOT}/exports/<tag>/`, not `~/exports/`.
+The mirror is hours old by now and you are probably in a fresh shell, so the `cd` is
+part of the block:
+
 ```sh
 # ===== RUN ON: CONNECTED BASTION =====
+cd ${OCP_AIRGAP_ROOT}
+
 mkdir -p exports/2026-10-02_initial
 cp mirror-out/mirror_*.tar exports/2026-10-02_initial/
 cp config/imageset-config.yaml exports/2026-10-02_initial/
@@ -170,6 +178,11 @@ cp config/imageset-config.yaml exports/2026-10-02_initial/
 Carrying the ImageSetConfiguration alongside the archives matters: the
 disk-to-mirror step requires `--config`, and it is also your only record of
 what this bundle contains.
+
+> Using the scripts? `20-mirror-to-disk.sh` has already done this, to
+> `${EXPORTS_DIR}/${EXPORT_TAG}` from `config/prep.env` — by default
+> `${OCP_AIRGAP_ROOT}/exports/2026-10-02_initial/`. Check before copying again:
+> `ls -lh ${OCP_AIRGAP_ROOT}/exports/*/`.
 
 ---
 

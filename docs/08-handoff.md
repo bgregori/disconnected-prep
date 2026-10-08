@@ -7,7 +7,7 @@ The boundary. Prep produces a bundle; the install side consumes it.
 ./scripts/90-handoff.sh
 ```
 
-Writes `~/ocp-airgap/handoff/<EXPORT_TAG>/`.
+Writes `${OCP_AIRGAP_ROOT}/handoff/<EXPORT_TAG>/`.
 
 > Working without this repo? The script only collects files and reshapes
 > the IDMS. See

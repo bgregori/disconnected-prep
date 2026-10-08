@@ -11,13 +11,13 @@
 
 source "$(dirname "$0")/lib/common.sh"
 load_env
-require_vars PREP_ROOT OCP_CHANNEL
+require_vars OCP_AIRGAP_ROOT OCP_CHANNEL
 require_cmds curl tar sudo
 
 MIRROR_REGISTRY_VERSION="${MIRROR_REGISTRY_VERSION:-1.3.9}"
-BIN="${PREP_ROOT}/binaries"
+BIN="${OCP_AIRGAP_ROOT}/binaries"
 
-run mkdir -p "${BIN}" "${PREP_ROOT}/config" "${CACHE_DIR}" "${MIRROR_OUT}" "${EXPORTS_DIR}"
+run mkdir -p "${BIN}" "${OCP_AIRGAP_ROOT}/config" "${CACHE_DIR}" "${MIRROR_OUT}" "${EXPORTS_DIR}"
 cd "${BIN}"
 
 # oc-mirror is pulled from the same channel as the payload, not from

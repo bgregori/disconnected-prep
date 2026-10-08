@@ -394,7 +394,7 @@ The cache holds roughly the full uncompressed content set, and it is
 ## $TMPDIR defaults to a STIG partition
 
 *Set when the hosts are provisioned, in
-[01-prerequisites.md](01-prerequisites.md#disk-concretely).*
+[01-prerequisites.md](01-prerequisites.md#where-the-prep-tree-lives).*
 
 **Symptom**
 
@@ -433,7 +433,7 @@ oc-mirror --v2 --cache-dir /data/oc-mirror-cache ...
 ```
 
 **Make it durable.** That `export` dies with the shell, so
-[01-prerequisites.md](01-prerequisites.md#disk-concretely) sets it for
+[01-prerequisites.md](01-prerequisites.md#where-the-prep-tree-lives) sets it for
 every login shell with a `/etc/profile.d` drop-in. `00-preflight.sh` prints
 the `TMPDIR` the current shell would actually use and fails if it is small
 or `noexec`, so a lost export surfaces before the run rather than hours

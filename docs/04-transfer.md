@@ -13,14 +13,15 @@ into the registry push, often the next day.
 
 ```sh
 # ===== RUN ON: CONNECTED BASTION =====
+: "${OCP_AIRGAP_ROOT:?set it first -- see 01-prerequisites.md}"
 TAG=2026-10-02_initial
-SRC=~/ocp-airgap/exports/${TAG}
+SRC=${OCP_AIRGAP_ROOT}/exports/${TAG}
 
 # first transfer only: carry the tooling and these procedures too
 mkdir -p "${SRC}/binaries"
-cp ~/ocp-airgap/binaries/openshift-client-linux.tar.gz \
-   ~/ocp-airgap/binaries/oc-mirror.rhel9.tar.gz \
-   ~/ocp-airgap/binaries/mirror-registry.tar.gz "${SRC}/binaries/"
+cp ${OCP_AIRGAP_ROOT}/binaries/openshift-client-linux.tar.gz \
+   ${OCP_AIRGAP_ROOT}/binaries/oc-mirror.rhel9.tar.gz \
+   ${OCP_AIRGAP_ROOT}/binaries/mirror-registry.tar.gz "${SRC}/binaries/"
 
 # checksum everything -- do this before the media leaves the host
 cd "${SRC}"
@@ -34,7 +35,7 @@ On arrival:
 
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
-cd ~/ocp-airgap/imports/${TAG} && sha256sum -c SHA256SUMS
+cd ${OCP_AIRGAP_ROOT}/imports/${TAG} && sha256sum -c SHA256SUMS
 ```
 
 Everything lands under `imports/${TAG}/`, including the tooling. Moving it
@@ -61,7 +62,7 @@ copy.
 
 ```sh
 # ===== RUN ON: CONNECTED BASTION =====
-du -sh ~/ocp-airgap/exports/2026-10-02_initial
+du -sh ${OCP_AIRGAP_ROOT}/exports/2026-10-02_initial
 df -h /path/to/removable/media
 df -h /path/to/disconnected/imports      # if you can see it
 ```
@@ -92,7 +93,7 @@ exports/2026-10-02_initial/
 already there.
 
 `scripts/30-package-transfer.sh` decides between the two by looking for
-`${PREP_ROOT}/.binaries-transferred`, which it creates after the first
+`${OCP_AIRGAP_ROOT}/.binaries-transferred`, which it creates after the first
 transfer. Delete that file to force the tooling to be included again — for
 instance after upgrading `oc-mirror`, when the far side needs the matching
 binary. Working by hand, just copy `binaries/` the first time and omit it
@@ -117,7 +118,7 @@ Before transfer:
 
 ```sh
 # ===== RUN ON: CONNECTED BASTION =====
-cd ~/ocp-airgap/exports/2026-10-02_initial
+cd ${OCP_AIRGAP_ROOT}/exports/2026-10-02_initial
 find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
 ```
 
@@ -125,9 +126,17 @@ After arrival:
 
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
-cd ~/ocp-airgap/imports/2026-10-02_initial
+cd ${OCP_AIRGAP_ROOT}/imports/2026-10-02_initial
 sha256sum -c SHA256SUMS
 ```
+
+Both commands read every byte and hash it single-threaded, printing nothing
+until they finish. Budget minutes, not seconds — 29 GB took several minutes
+on a 2 vCPU host, and the cost is paid twice, once at each end. Hash on
+local disk rather than on the removable medium, which is why the checksum
+happens before the copy above. If it runs far longer than that, check you
+are in the export directory: from `${OCP_AIRGAP_ROOT}`, `find .` also walks
+`cache/` and its hundreds of thousands of small files.
 
 `60-push-to-registry.sh` runs this automatically and refuses to proceed on a
 mismatch. A silently truncated 400 GB archive otherwise fails deep inside

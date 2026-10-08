@@ -11,7 +11,7 @@
 
 source "$(dirname "$0")/lib/common.sh"
 load_env
-require_vars EXPORTS_DIR EXPORT_TAG PREP_ROOT
+require_vars EXPORTS_DIR EXPORT_TAG OCP_AIRGAP_ROOT
 require_cmds sha256sum
 
 SRC="${EXPORTS_DIR}/${EXPORT_TAG}"
@@ -21,7 +21,7 @@ SRC="${EXPORTS_DIR}/${EXPORT_TAG}"
 # archives. The marker lives alongside the prep tree, NOT inside the export
 # directory -- a per-export marker is never present in a new dated export,
 # so every delta would needlessly re-ship ~840 MB of binaries.
-BIN_MARKER="${PREP_ROOT}/.binaries-transferred"
+BIN_MARKER="${OCP_AIRGAP_ROOT}/.binaries-transferred"
 if [[ "${INCLUDE_BINARIES:-auto}" == "auto" ]]; then
   if [[ -f "${BIN_MARKER}" ]]; then INCLUDE_BINARIES=false; else INCLUDE_BINARIES=true; fi
 fi
@@ -30,7 +30,7 @@ if [[ "${INCLUDE_BINARIES}" == "true" ]]; then
   info "Including binaries/ and this repo (first transfer)"
   run mkdir -p "${SRC}/binaries"
   for f in openshift-client-linux.tar.gz oc-mirror.rhel9.tar.gz mirror-registry.tar.gz; do
-    [[ -f "${PREP_ROOT}/binaries/${f}" ]] && run cp -v "${PREP_ROOT}/binaries/${f}" "${SRC}/binaries/"
+    [[ -f "${OCP_AIRGAP_ROOT}/binaries/${f}" ]] && run cp -v "${OCP_AIRGAP_ROOT}/binaries/${f}" "${SRC}/binaries/"
   done
   # The disconnected side needs these procedures too.
   #

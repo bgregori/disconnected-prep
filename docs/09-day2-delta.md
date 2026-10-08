@@ -150,10 +150,11 @@ is already on the other side.
 
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
-cd ~/ocp-airgap/imports/2026-12-01_z-stream-4.21.28
+: "${OCP_AIRGAP_ROOT:?set it first -- see 01-prerequisites.md}"
+cd ${OCP_AIRGAP_ROOT}/imports/2026-12-01_z-stream-4.21.28
 sha256sum -c SHA256SUMS
 
-cd ~/ocp-airgap
+cd ${OCP_AIRGAP_ROOT}
 EXPORT_TAG=2026-12-01_z-stream-4.21.28 ./scripts/60-push-to-registry.sh
 ```
 
@@ -198,7 +199,7 @@ destination.
 
 ```sh
 # ===== RUN ON: CONNECTED BASTION =====
-cd ~/ocp-airgap
+cd ${OCP_AIRGAP_ROOT}
 umask 0022                       # oc-mirror requires 0022; STIG sets 0077
 
 # 1. edit config/imageset-config.yaml -- bump the version, or add packages
@@ -232,16 +233,16 @@ the tooling is already on the far side.
 
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
-cd ~/ocp-airgap
+cd ${OCP_AIRGAP_ROOT}
 umask 0022
 TAG=2026-12-01_day2
 
 # 5. verify the transfer, then push
-cd imports/${TAG} && sha256sum -c SHA256SUMS && cd ~/ocp-airgap
+cd imports/${TAG} && sha256sum -c SHA256SUMS && cd ${OCP_AIRGAP_ROOT}
 
 oc-mirror --v2 \
   --config imports/${TAG}/imageset-config.yaml \
-  --from file:///home/$(whoami)/ocp-airgap/imports/${TAG} \
+  --from file://${OCP_AIRGAP_ROOT}/imports/${TAG} \
   --cache-dir /data/cache \
   --authfile binaries/mirror-pull-secret.json \
   docker://registry.example.com:8443
@@ -339,7 +340,7 @@ and you need a full one regenerated, delete the history deliberately:
 
 ```sh
 # ===== RUN ON: CONNECTED BASTION =====
-rm -rf ~/ocp-airgap/mirror-out/working-dir/.history
+rm -rf ${OCP_AIRGAP_ROOT}/mirror-out/working-dir/.history
 ./scripts/20-mirror-to-disk.sh          # full archive again
 ```
 
@@ -348,8 +349,8 @@ hold the tars:
 
 ```sh
 # ===== RUN ON: CONNECTED BASTION =====
-for a in ~/ocp-airgap/exports/*/mirror_*.tar; do
-  tar xf "$a" -C ~/ocp-airgap/cache/.oc-mirror/.cache docker/
+for a in ${OCP_AIRGAP_ROOT}/exports/*/mirror_*.tar; do
+  tar xf "$a" -C ${OCP_AIRGAP_ROOT}/cache/.oc-mirror/.cache docker/
 done
 ```
 

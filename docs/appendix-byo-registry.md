@@ -47,11 +47,12 @@ generate it:
 
 ```sh
 # ===== RUN ON: THE HOST YOU PUSH FROM =====
+: "${OCP_AIRGAP_ROOT:?set it first -- see 01-prerequisites.md}"
 AUTH=$(printf '%s:%s' "${REG_USER}" "${REG_TOKEN}" | base64 -w0)
-cat > ~/ocp-airgap/binaries/mirror-pull-secret.json <<EOF
+cat > ${OCP_AIRGAP_ROOT}/binaries/mirror-pull-secret.json <<EOF
 {"auths":{"artifactory.corp.local:443":{"auth":"${AUTH}"}}}
 EOF
-chmod 600 ~/ocp-airgap/binaries/mirror-pull-secret.json
+chmod 600 ${OCP_AIRGAP_ROOT}/binaries/mirror-pull-secret.json
 ```
 
 The key must match the `docker://` target **exactly**. If you push to
@@ -86,7 +87,7 @@ Unchanged except for the destination:
 # ===== RUN ON: THE HOST YOU PUSH FROM =====
 oc-mirror --v2 \
   --config imports/<tag>/imageset-config.yaml \
-  --from file:///home/user/ocp-airgap/imports/<tag> \
+  --from file://${OCP_AIRGAP_ROOT}/imports/<tag> \
   --cache-dir ./cache \
   --authfile binaries/mirror-pull-secret.json \
   docker://artifactory.corp.local

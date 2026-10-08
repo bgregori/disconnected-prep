@@ -14,7 +14,8 @@ and generates the cluster manifests.
 
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
-cd ~/ocp-airgap/imports/2026-10-02_initial
+: "${OCP_AIRGAP_ROOT:?set it first -- see 01-prerequisites.md}"
+cd ${OCP_AIRGAP_ROOT}/imports/2026-10-02_initial
 sha256sum -c SHA256SUMS
 ```
 
@@ -41,12 +42,12 @@ oc version --client
 
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
-cd ~/ocp-airgap
+cd ${OCP_AIRGAP_ROOT}
 
 export TMPDIR=/data/tmp
 umask 0022 && oc-mirror --v2 \
   --config imports/2026-10-02_initial/imageset-config.yaml \
-  --from file:///home/user/ocp-airgap/imports/2026-10-02_initial \
+  --from file://${OCP_AIRGAP_ROOT}/imports/2026-10-02_initial \
   --cache-dir ./cache \
   --authfile binaries/mirror-pull-secret.json \
   docker://registry.airgap.local:8443
@@ -65,7 +66,7 @@ This is **disk-to-mirror (d2m)**. Points to note:
 - **`TMPDIR`** because the push is where this bites hardest: unset, blobs
   stage in `/var/tmp`, a separate 5 GB filesystem under STIG. Set it
   durably rather than per-shell —
-  [01-prerequisites.md](01-prerequisites.md#disk-concretely) has the
+  [01-prerequisites.md](01-prerequisites.md#where-the-prep-tree-lives) has the
   drop-in, and
   [the appendix](appendix-fips-stig.md#tmpdir-defaults-to-a-stig-partition)
   has the why.
@@ -114,7 +115,7 @@ curl -s -u init:<password> \
   https://registry.airgap.local:8443/v2/_catalog | python3 -m json.tool | head -40
 
 oc adm release info \
-  --authfile ~/ocp-airgap/binaries/mirror-pull-secret.json \
+  --authfile ${OCP_AIRGAP_ROOT}/binaries/mirror-pull-secret.json \
   registry.airgap.local:8443/openshift/release-images:4.21.26-x86_64
 ```
 

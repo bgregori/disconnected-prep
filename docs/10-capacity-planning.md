@@ -240,6 +240,7 @@ so you cannot accidentally delete everything by editing the wrong file.
 
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
+: "${OCP_AIRGAP_ROOT:?set it first -- see 01-prerequisites.md}"
 cat > delete-isc.yaml <<'EOF'
 apiVersion: mirror.openshift.io/v1alpha2
 kind: DeleteImageSetConfiguration
@@ -253,13 +254,13 @@ EOF
 
 # Stage 1 -- generate and REVIEW the delete plan
 oc-mirror delete --v2 --config delete-isc.yaml \
-  --workspace file:///home/user/ocp-airgap/mirror-out \
+  --workspace file://${OCP_AIRGAP_ROOT}/mirror-out \
   --generate --delete-id retire-4.21.26 \
   docker://registry.example.com:8443
 
 # Stage 2 -- execute, after reading the generated file
 oc-mirror delete --v2 \
-  --delete-yaml-file /home/user/ocp-airgap/mirror-out/working-dir/delete/delete-images-retire-4.21.26.yaml \
+  --delete-yaml-file ${OCP_AIRGAP_ROOT}/mirror-out/working-dir/delete/delete-images-retire-4.21.26.yaml \
   --force-cache-delete true \
   docker://registry.example.com:8443
 ```
@@ -306,8 +307,8 @@ The easy win, and worth automating from day one:
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
 # keep the two most recent transfers on each side
-ls -1dt ~/ocp-airgap/imports/*/ | tail -n +3 | xargs -r rm -rf
-ls -1dt ~/ocp-airgap/exports/*/ | tail -n +3 | xargs -r rm -rf
+ls -1dt ${OCP_AIRGAP_ROOT}/imports/*/ | tail -n +3 | xargs -r rm -rf
+ls -1dt ${OCP_AIRGAP_ROOT}/exports/*/ | tail -n +3 | xargs -r rm -rf
 ```
 
 Keep at least one, so a failed push can be retried without re-crossing the
@@ -334,7 +335,7 @@ takes a fortnight.
 # ===== RUN ON: BOTH HOSTS =====
 # cheap check, suitable for cron on both hosts
 for p in "$(podman info --format '{{.Store.GraphRoot}}' 2>/dev/null)" \
-         /data/cache ~/ocp-airgap/imports; do
+         /data/cache ${OCP_AIRGAP_ROOT}/imports; do
   [ -d "$p" ] || continue
   u=$(df -P "$p" | tail -1 | awk '{print $5}' | tr -d '%')
   [ "$u" -ge 80 ] && echo "WARN ${p} at ${u}%"

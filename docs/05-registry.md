@@ -20,21 +20,22 @@ Already have an enterprise registry? See
 
 **First transfer only.** Everything arrived under `imports/<tag>/`, but the
 rest of this chapter — and `50-install-registry.sh` — expects the prep tree
-layout at `~/ocp-airgap/`. Put it in place before anything else:
+layout at `${OCP_AIRGAP_ROOT}/`. Put it in place before anything else:
 
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
+: "${OCP_AIRGAP_ROOT:?set it first -- see 01-prerequisites.md}"
 TAG=2026-10-02_initial
 
-mkdir -p ~/ocp-airgap/{binaries,config,cache}
-cp ~/ocp-airgap/imports/${TAG}/binaries/* ~/ocp-airgap/binaries/
+mkdir -p ${OCP_AIRGAP_ROOT}/{binaries,config,cache}
+cp ${OCP_AIRGAP_ROOT}/imports/${TAG}/binaries/* ${OCP_AIRGAP_ROOT}/binaries/
 ```
 
 Then install `oc` and `oc-mirror` on *this* host:
 
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
-cd ~/ocp-airgap/binaries
+cd ${OCP_AIRGAP_ROOT}/binaries
 sudo tar -xzf openshift-client-linux.tar.gz -C /usr/local/bin oc
 sudo tar -xzf oc-mirror.rhel9.tar.gz -C /usr/local/bin oc-mirror
 sudo chown root:root /usr/local/bin/oc /usr/local/bin/oc-mirror
@@ -118,6 +119,24 @@ QUAY_PASSWORD="<at least 8 characters>"
 > podman info --format '{{.Store.GraphRoot}}'   # confirm before installing
 > ```
 >
+> ⚠️ **STIG Relabel it for SELinux, or the containers cannot read their
+> own storage.** A freshly provisioned `/data` has no file context rule, so
+> everything written there lands as `default_t` instead of the
+> `container_*` types the container runtime expects. Teach SELinux that the
+> new path is equivalent to the default one, *before* populating it:
+>
+> ```sh
+> sudo semanage fcontext -a -e /var/lib/containers /data/containers/storage
+> sudo restorecon -Rv /data/containers/storage
+> ```
+>
+> Skipping this produces permission errors from inside the Quay containers
+> that name a file the host can plainly read — see
+> [the appendix](appendix-fips-stig.md#selinux-mislabels-extracted-binaries)
+> for the same failure in its other form. Check with
+> `ls -Zd /data/containers/storage`, and `sudo ausearch -m AVC -ts recent`
+> when something fails anyway.
+>
 > Do this first. Moving it after Quay holds data means re-pushing
 > everything.
 >
@@ -133,7 +152,7 @@ host is infrastructure the cluster depends on for the life of the cluster.
 
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
-cd ~/ocp-airgap/binaries
+cd ${OCP_AIRGAP_ROOT}/binaries
 tar -xzf mirror-registry.tar.gz
 
 sudo firewall-cmd --add-port 8443/tcp --permanent
@@ -228,10 +247,10 @@ it.
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
 QUAY_AUTH=$(printf 'init:%s' '<password>' | base64 -w0)
-cat > ~/ocp-airgap/binaries/mirror-pull-secret.json <<EOF
+cat > ${OCP_AIRGAP_ROOT}/binaries/mirror-pull-secret.json <<EOF
 {"auths":{"registry.airgap.local:8443":{"auth":"${QUAY_AUTH}"}}}
 EOF
-chmod 600 ~/ocp-airgap/binaries/mirror-pull-secret.json
+chmod 600 ${OCP_AIRGAP_ROOT}/binaries/mirror-pull-secret.json
 ```
 
 The key must exactly match the `docker://` target you push to, port
@@ -245,7 +264,7 @@ Verify:
 # ===== RUN ON: REGISTRY HOST =====
 printf '%s' '<password>' | podman login \
   --username init --password-stdin \
-  --authfile ~/ocp-airgap/binaries/mirror-pull-secret.json \
+  --authfile ${OCP_AIRGAP_ROOT}/binaries/mirror-pull-secret.json \
   registry.airgap.local:8443
 ```
 

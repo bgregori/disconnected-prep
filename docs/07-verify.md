@@ -18,19 +18,20 @@ possibly a scheduled transfer window.
 
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
+: "${OCP_AIRGAP_ROOT:?set it first -- see 01-prerequisites.md}"
 export REG=registry.airgap.local:8443
 export VER=4.21.26
-export IDMS=~/ocp-airgap/imports/2026-10-02_initial/working-dir/cluster-resources/idms-oc-mirror.yaml
+export IDMS=${OCP_AIRGAP_ROOT}/imports/2026-10-02_initial/working-dir/cluster-resources/idms-oc-mirror.yaml
 
 oc adm release extract \
-  --registry-config ~/ocp-airgap/binaries/mirror-pull-secret.json \
+  --registry-config ${OCP_AIRGAP_ROOT}/binaries/mirror-pull-secret.json \
   --command=openshift-install-fips \
   --from="${REG}/openshift/release-images:${VER}-x86_64" \
-  --to=~/ocp-airgap/binaries \
+  --to=${OCP_AIRGAP_ROOT}/binaries \
   --idms-file="${IDMS}"
 
-chmod +x ~/ocp-airgap/binaries/openshift-install-fips
-~/ocp-airgap/binaries/openshift-install-fips version
+chmod +x ${OCP_AIRGAP_ROOT}/binaries/openshift-install-fips
+${OCP_AIRGAP_ROOT}/binaries/openshift-install-fips version
 ```
 
 Two things about this command.
@@ -108,7 +109,7 @@ cluster.
 
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
-oc image info --registry-config ~/ocp-airgap/binaries/mirror-pull-secret.json \
+oc image info --registry-config ${OCP_AIRGAP_ROOT}/binaries/mirror-pull-secret.json \
   --filter-by-os linux/amd64 \
   registry.airgap.local:8443/redhat/redhat-operator-index:v4.21
 ```
@@ -124,7 +125,7 @@ for img in \
   openshift4/ose-must-gather:latest \
   container-native-virtualization/virtio-win:latest ; do
   echo -n "${img}: "
-  oc image info --registry-config ~/ocp-airgap/binaries/mirror-pull-secret.json \
+  oc image info --registry-config ${OCP_AIRGAP_ROOT}/binaries/mirror-pull-secret.json \
     --filter-by-os linux/amd64 "registry.airgap.local:8443/${img}" >/dev/null 2>&1 \
     && echo OK || echo MISSING
 done

@@ -14,10 +14,10 @@
 
 source "$(dirname "$0")/lib/common.sh"
 load_env
-require_vars PREP_ROOT OCP_VERSION OCP_ARCH REGISTRY_HOST REGISTRY_PORT MIRROR_PULL_SECRET IMPORTS_DIR EXPORT_TAG
+require_vars OCP_AIRGAP_ROOT OCP_VERSION OCP_ARCH REGISTRY_HOST REGISTRY_PORT MIRROR_PULL_SECRET IMPORTS_DIR EXPORT_TAG
 require_cmds oc
 
-BIN="${PREP_ROOT}/binaries"
+BIN="${OCP_AIRGAP_ROOT}/binaries"
 run mkdir -p "${BIN}"
 
 IDMS="${IMPORTS_DIR}/${EXPORT_TAG}/working-dir/cluster-resources/idms-oc-mirror.yaml"

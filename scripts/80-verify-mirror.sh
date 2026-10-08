@@ -8,7 +8,7 @@
 
 source "$(dirname "$0")/lib/common.sh"
 load_env
-require_vars OCP_VERSION REGISTRY_HOST REGISTRY_PORT MIRROR_PULL_SECRET PREP_ROOT IMPORTS_DIR EXPORT_TAG
+require_vars OCP_VERSION REGISTRY_HOST REGISTRY_PORT MIRROR_PULL_SECRET OCP_AIRGAP_ROOT IMPORTS_DIR EXPORT_TAG
 require_cmds oc
 
 REG="$(registry_ref)"
@@ -39,8 +39,8 @@ else
 fi
 
 # 3 -- FIPS installer extracted and version-matched
-if [[ -x "${PREP_ROOT}/binaries/openshift-install-fips" ]]; then
-  v=$("${PREP_ROOT}/binaries/openshift-install-fips" version 2>/dev/null | head -1 | awk '{print $2}')
+if [[ -x "${OCP_AIRGAP_ROOT}/binaries/openshift-install-fips" ]]; then
+  v=$("${OCP_AIRGAP_ROOT}/binaries/openshift-install-fips" version 2>/dev/null | head -1 | awk '{print $2}')
   if [[ "${v}" == "${OCP_VERSION}" ]]; then
     _p "openshift-install-fips present and reports ${v}"
   else

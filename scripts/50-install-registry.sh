@@ -14,13 +14,13 @@
 
 source "$(dirname "$0")/lib/common.sh"
 load_env
-require_vars PREP_ROOT QUAY_ROOT REGISTRY_HOST REGISTRY_PORT QUAY_USER QUAY_PASSWORD MIRROR_PULL_SECRET IMPORTS_DIR EXPORT_TAG
+require_vars OCP_AIRGAP_ROOT QUAY_ROOT REGISTRY_HOST REGISTRY_PORT QUAY_USER QUAY_PASSWORD MIRROR_PULL_SECRET IMPORTS_DIR EXPORT_TAG
 require_cmds tar sudo base64
 
 [[ "${QUAY_PASSWORD}" == "CHANGE-ME-before-running" ]] && die "Set QUAY_PASSWORD in config/prep.env."
 (( ${#QUAY_PASSWORD} >= 8 )) || die "Quay requires a password of at least 8 characters."
 
-BIN="${PREP_ROOT}/binaries"
+BIN="${OCP_AIRGAP_ROOT}/binaries"
 
 # Image data goes to podman's volume store, not to --quayRoot (which holds
 # only config and certs). Check the filesystem that will actually fill up.

@@ -119,7 +119,29 @@ The marker is inside the block rather than above it so that it survives a
 copy-paste into a terminal, a runbook or a change request. Running the
 right command on the wrong host is the most common way these procedures go
 wrong, and the two hosts hold deliberately similar directory trees, so
-`~/ocp-airgap/binaries` looks correct on either one.
+`${OCP_AIRGAP_ROOT}/binaries` looks correct on either one.
+
+**Paths are written as `${OCP_AIRGAP_ROOT}`, which you choose.** The
+chapters do not assume the prep tree is in your home directory, because on
+a hardened build `/home` is usually its own undersized file system. You export
+`OCP_AIRGAP_ROOT` once per host in
+[01-prerequisites.md](docs/01-prerequisites.md#where-the-prep-tree-lives),
+durably, and every later block uses it — including the `--from file://`
+arguments, which need an absolute path and so cannot be made relative. The
+same name is the first variable in `config/prep.env`, and the file honours
+an exported value, so the by-hand path and the script path are one
+variable rather than two that have to be kept in step.
+
+By-hand blocks that depend on it open with a guard:
+
+```sh
+# ===== RUN ON: REGISTRY HOST =====
+: "${OCP_AIRGAP_ROOT:?set it first -- see 01-prerequisites.md}"
+```
+
+It is a no-op when the variable is set, and stops the block running
+against your home directory when it is not — which is what an unset
+`${OCP_AIRGAP_ROOT}` would otherwise mean to `cd`.
 
 The labels used are `CONNECTED BASTION`, `REGISTRY HOST`, `BOTH HOSTS`,
 `A NODE-NETWORK HOST` (for checks that must *not* run on the registry host,

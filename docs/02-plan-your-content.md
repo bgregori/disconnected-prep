@@ -12,7 +12,7 @@ So the question to answer precisely, before running anything:
 > **What will anyone need to install on this cluster, ever?**
 
 > **Needs the tooling.** Sections 2 and 4 run `oc` and `oc-mirror` against
-> `~/ocp-airgap/binaries/pull-secret.json`. Install them first —
+> `${OCP_AIRGAP_ROOT}/binaries/pull-secret.json`. Install them first —
 > [01-prerequisites.md](01-prerequisites.md#install-the-tooling). Section 1
 > is pure planning and needs nothing.
 
@@ -88,8 +88,9 @@ the catalog's file-based catalog down once, then query it locally.
 
 ```sh
 # ===== RUN ON: CONNECTED BASTION =====
+: "${OCP_AIRGAP_ROOT:?set it first -- see 01-prerequisites.md}"
 CATALOG=registry.redhat.io/redhat/redhat-operator-index:v4.21
-PULL_SECRET=~/ocp-airgap/binaries/pull-secret.json
+PULL_SECRET=${OCP_AIRGAP_ROOT}/binaries/pull-secret.json
 
 mkdir -p ~/catalog
 oc image extract "${CATALOG}" \
@@ -185,7 +186,7 @@ bisecting.
 > concatenates fragments, and the finished file is short.
 
 Profiles live in `imageset-configs/`, **in your clone of this repository**
-— not in `~/ocp-airgap/`, which holds only the artifacts of a run.
+— not in `${OCP_AIRGAP_ROOT}/`, which holds only the artifacts of a run.
 `base-platform.yaml` is always included; each profile adds operators and
 images for one capability.
 
@@ -213,14 +214,14 @@ working configuration is short. This is the one actually used for the
 validated run in [VALIDATION.md](../VALIDATION.md), with the operator list
 to edit.
 
-Write it to `~/ocp-airgap/config/imageset-config.yaml` — the `config/`
+Write it to `${OCP_AIRGAP_ROOT}/config/imageset-config.yaml` — the `config/`
 directory created with the rest of the prep tree in
 [01-prerequisites.md](01-prerequisites.md#install-the-tooling). Every later
 chapter refers to this file as `${IMAGESET_CONFIG}`.
 
 ```sh
 # ===== RUN ON: CONNECTED BASTION =====
-${EDITOR} ~/ocp-airgap/config/imageset-config.yaml
+${EDITOR} ${OCP_AIRGAP_ROOT}/config/imageset-config.yaml
 ```
 
 ```yaml
@@ -311,7 +312,7 @@ By hand, the dry run is the same mirror command with `--dry-run`:
 
 ```sh
 # ===== RUN ON: CONNECTED BASTION =====
-cd ~/ocp-airgap
+cd ${OCP_AIRGAP_ROOT}
 umask 0022
 oc-mirror --v2 \
   --config config/imageset-config.yaml \
@@ -365,8 +366,8 @@ Watch actual consumption as the mirror runs:
 
 ```sh
 # ===== RUN ON: CONNECTED BASTION =====
-du -sh ~/ocp-airgap/cache ~/ocp-airgap/mirror-out
-df -h ~/ocp-airgap
+du -sh ${OCP_AIRGAP_ROOT}/cache ${OCP_AIRGAP_ROOT}/mirror-out
+df -h ${OCP_AIRGAP_ROOT}
 ```
 
 ---

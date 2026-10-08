@@ -31,7 +31,7 @@ require_cmds oc python3
 
 OCP_MINOR="${OCP_MINOR:-${OCP_VERSION%.*}}"
 CATALOG="${CATALOG:-registry.redhat.io/redhat/redhat-operator-index:v${OCP_MINOR}}"
-FBC_DIR="${FBC_DIR:-${PREP_ROOT:-$HOME/ocp-airgap}/catalog-cache/${OCP_MINOR}}"
+FBC_DIR="${FBC_DIR:-${OCP_AIRGAP_ROOT:-$HOME/ocp-airgap}/catalog-cache/${OCP_MINOR}}"
 
 # --- fetch the catalog once ------------------------------------------------
 
