@@ -200,6 +200,13 @@ umask 0022 && ./mirror-registry install \
 > the installer, and an explicit `0755` instead of the STIG `umask 0077`,
 > which would hand Quay a `0700` directory and trade this failure for the
 > crash-loop below.
+>
+> The same root-owned parent makes `mirror-registry uninstall` end on
+> `rmtree failed: [Errno 13] Permission denied: '/opt/quay'` and exit 2.
+> Everything inside was removed — deleting the directory *entry* needs
+> write permission on `/opt`, which you deliberately do not have. The
+> empty directory it leaves is the one the next install wants, so there is
+> nothing to repair.
 
 > ⚠️ **Enable lingering before the install, not after.** Quay runs as
 > **user** systemd services, and `mirror-registry` starts them over its own
