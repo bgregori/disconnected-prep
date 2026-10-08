@@ -110,7 +110,8 @@ QUAY_PASSWORD="<at least 8 characters>"
 > running the installer:
 >
 > ```sh
-> mkdir -p ~/.config/containers /data/containers/storage
+> mkdir -p ~/.config/containers
+> sudo install -d -o "$(id -un)" -g "$(id -gn)" -m 0755 /data/containers/storage
 > cat > ~/.config/containers/storage.conf <<'EOF'
 > [storage]
 > driver = "overlay"
@@ -139,6 +140,17 @@ QUAY_PASSWORD="<at least 8 characters>"
 >
 > Do this first. Moving it after Quay holds data means re-pushing
 > everything.
+>
+> **Confirm podman actually resolved it**, because a `storage.conf`
+> pointing at a directory the invoking user cannot write is worse than no
+> `storage.conf` at all — Quay's pod is created and its containers never
+> start, which the installer reports as a timeout polling
+> `/health/instance` rather than as a storage problem:
+>
+> ```sh
+> podman info --format '{{.Store.GraphRoot}}'   # /data/containers/storage
+> ls -ld /data/containers/storage               # owned by you, not root
+> ```
 >
 > `scripts/00-preflight.sh` checks the real storage path, not `QUAY_ROOT`.
 
