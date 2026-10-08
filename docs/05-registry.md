@@ -170,6 +170,11 @@ tar -xzf mirror-registry.tar.gz
 sudo firewall-cmd --add-port 8443/tcp --permanent
 sudo firewall-cmd --reload
 
+# Quay runs as USER systemd services. Enable lingering BEFORE installing --
+# see below.
+sudo loginctl enable-linger "$USER"
+loginctl show-user "$USER" | grep Linger       # expect Linger=yes
+
 # QUAY_ROOT must exist and be yours before the installer runs -- see below
 sudo install -d -o "$(id -un)" -g "$(id -gn)" -m 0755 /opt/quay
 
@@ -195,6 +200,27 @@ umask 0022 && ./mirror-registry install \
 > the installer, and an explicit `0755` instead of the STIG `umask 0077`,
 > which would hand Quay a `0700` directory and trade this failure for the
 > crash-loop below.
+
+> ⚠️ **Enable lingering before the install, not after.** Quay runs as
+> **user** systemd services, and `mirror-registry` starts them over its own
+> SSH session to localhost. With `Linger=no`, systemd tears the user
+> manager down with that session: the pod is created, its containers never
+> start, and the installer fails ten polls later on
+>
+> ```
+> Status code was -1 and not [200]: Request failed:
+> <urlopen error TLS/SSL connection has been closed (EOF)>
+> ```
+>
+> against `/health/instance` — which looks like a certificate problem and
+> is not one. `podman ps -a` showing a lone `*-infra` container in
+> `Created`, with no `quay-app`, is the tell. The same missing linger makes
+> `mirror-registry uninstall` exit 2, so the failed install is awkward to
+> clean up as well.
+>
+> Lingering is also what keeps the registry running after you log out —
+> including while a cluster depends on it — so it is not merely an install
+> step.
 
 > ⚠️ **STIG — the `umask 0022` prefix is required.** With the STIG default
 > of `0077`, the installer creates `quay-config` and `quay-rootCA` as `0700`
@@ -227,19 +253,6 @@ systemctl --user restart quay-app.service
 > Paths in the drop-in must match your actual `QUAY_ROOT`. Guides that use
 > `/data/quay` while installing to `/opt/quay` produce a drop-in that
 > quietly does nothing.
-
-### Survive logout
-
-Quay runs as a **user** service.
-
-```sh
-# ===== RUN ON: REGISTRY HOST =====
-sudo loginctl enable-linger $USER
-loginctl show-user $USER | grep Linger     # expect Linger=yes
-```
-
-Without this, the registry disappears when you log out — including while a
-cluster is depending on it.
 
 ---
 

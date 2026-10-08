@@ -284,8 +284,9 @@ grep -rE '^\s*umask' /etc/profile /etc/bashrc /etc/login.defs 2>/dev/null
 
 ## User services die at logout
 
-*Lingering is already enabled after the Quay install in
-[05-registry.md](05-registry.md).*
+*Lingering is already enabled immediately before the Quay install in
+[05-registry.md](05-registry.md) — the install itself needs it, not just
+the logout afterwards.*
 
 **Symptom**
 

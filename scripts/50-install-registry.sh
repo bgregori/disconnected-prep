@@ -68,6 +68,13 @@ fi
 
 # --- install ---------------------------------------------------------------
 
+# Before the install, not after: Quay runs as user systemd services and
+# mirror-registry starts them over its own SSH session to localhost. With
+# Linger=no systemd tears that user manager down with the session, the pod
+# is created with no running containers, and the installer fails polling
+# /health/instance with a TLS EOF that looks like a certificate problem.
+run sudo loginctl enable-linger "${USER}"
+
 info "Installing Quay at ${QUAY_ROOT} for ${REGISTRY_HOST}"
 # umask must be relaxed for the duration of the install only.
 run_sh "umask 0022 && '${BIN}/mirror-registry' install \
@@ -89,9 +96,6 @@ ExecStartPre=/bin/bash -c 'chmod -R 755 ${QUAY_ROOT}/quay-config ${QUAY_ROOT}/qu
 EOF
 run systemctl --user daemon-reload
 run systemctl --user restart quay-app.service || warn "Could not restart quay-app.service; check 'systemctl --user status quay-app'"
-
-# Survive logout.
-run sudo loginctl enable-linger "${USER}"
 
 # --- CA trust --------------------------------------------------------------
 
