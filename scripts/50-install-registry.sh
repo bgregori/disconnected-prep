@@ -147,17 +147,7 @@ info "Adding the Quay CA to the system trust store"
 run sudo cp -v "${CA}" /etc/pki/ca-trust/source/anchors/quay-rootCA.pem
 run sudo update-ca-trust
 
-# --- auth file -------------------------------------------------------------
-
-info "Writing ${MIRROR_PULL_SECRET}"
-run mkdir -p "$(dirname "${MIRROR_PULL_SECRET}")"
-QUAY_AUTH=$(printf '%s:%s' "${QUAY_USER}" "${QUAY_PASSWORD}" | base64 -w0)
-cat > "${MIRROR_PULL_SECRET}" <<EOF
-{"auths":{"$(registry_ref)":{"auth":"${QUAY_AUTH}"}}}
-EOF
-run chmod 600 "${MIRROR_PULL_SECRET}"
-
-# --- verify ----------------------------------------------------------------
+# --- wait for Quay ---------------------------------------------------------
 
 # mirror-registry reports success as soon as the containers are started, but
 # Quay needs another minute or two to finish initialising -- longer on a small
@@ -176,17 +166,33 @@ echo >&2
   || die "Quay did not become healthy. Check: podman logs quay-app"
 ok "Quay is healthy"
 
-info "Verifying login"
+# --- auth file -------------------------------------------------------------
+
+# `podman login --authfile` writes the file AND proves the credentials in one
+# step, and keys it by exactly the string we push to -- which is the usual way
+# an auth file goes wrong (host vs host:port are different keys). Writing the
+# JSON by hand first, as earlier versions did, only to have podman rewrite it,
+# bought nothing.
+#
 # --password-stdin keeps the password out of the process list, and the
 # explicit --username prevents podman from falling back to an interactive
 # prompt, which would hang a non-interactive run.
+info "Writing ${MIRROR_PULL_SECRET} via podman login"
+run mkdir -p "$(dirname "${MIRROR_PULL_SECRET}")"
 if command -v podman >/dev/null 2>&1; then
   printf '%s' "${QUAY_PASSWORD}" | run podman login \
       --username "${QUAY_USER}" --password-stdin \
       --authfile "${MIRROR_PULL_SECRET}" \
       "$(registry_ref)" \
     || die "Could not log in to $(registry_ref). Check DNS, firewall, and CA trust."
+else
+  warn "podman not found -- writing ${MIRROR_PULL_SECRET} unverified."
+  QUAY_AUTH=$(printf '%s:%s' "${QUAY_USER}" "${QUAY_PASSWORD}" | base64 -w0)
+  cat > "${MIRROR_PULL_SECRET}" <<EOF
+{"auths":{"$(registry_ref)":{"auth":"${QUAY_AUTH}"}}}
+EOF
 fi
+run chmod 600 "${MIRROR_PULL_SECRET}"
 
 ok "Registry ready at https://$(registry_ref)"
 cat >&2 <<EOF

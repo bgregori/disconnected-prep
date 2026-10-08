@@ -431,53 +431,60 @@ it.
 
 ## Create the auth file
 
-```sh
-# ===== RUN ON: REGISTRY HOST =====
-QUAY_AUTH=$(printf 'init:%s' '<password>' | base64 -w0)
-cat > ${OCP_AIRGAP_ROOT}/binaries/mirror-pull-secret.json <<EOF
-{"auths":{"registry.airgap.local:8443":{"auth":"${QUAY_AUTH}"}}}
-EOF
-chmod 600 ${OCP_AIRGAP_ROOT}/binaries/mirror-pull-secret.json
-```
-
-The key must exactly match the `docker://` target you push to, port
-included. `registry.airgap.local` and `registry.airgap.local:8443` are
-different keys and a mismatch produces an authentication failure that looks
-like a credentials problem.
-
-Verify:
+One command. `podman login` writes the file, in the format `oc-mirror`
+expects, and proves the credentials work in the same step:
 
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
-printf '%s' '<password>' | podman login \
-  --username init --password-stdin \
-  --authfile ${OCP_AIRGAP_ROOT}/binaries/mirror-pull-secret.json \
-  registry.airgap.local:8443
+podman login --authfile ${OCP_AIRGAP_ROOT}/binaries/mirror-pull-secret.json \
+  -u init registry.airgap.local:8443
 ```
 
-Pass `--username` and `--password-stdin` explicitly. Without them `podman
-login` falls back to an **interactive prompt** when the stored credentials
-are not accepted — which hangs any non-interactive run, and reports the
-hang as `reading username: EOF` rather than as an auth problem.
+It prompts for the password, so the password never reaches your shell
+history, and it creates the file `0600`. There is no need to assemble the
+JSON by hand or to copy anything out of
+`${XDG_RUNTIME_DIR}/containers/auth.json` — pass `--authfile` and the
+credentials land straight at the durable path. (Without it they go to the
+runtime directory, which is tmpfs and gone after a reboot.)
 
-> ⚠️ **Wait for Quay before verifying.** `mirror-registry install` prints
-> `Quay installed successfully` as soon as the containers start, but Quay
-> needs another one to three minutes to finish initialising — longer on a
-> small host. Logging in during that window fails with
-> `Existing credentials are invalid`, which looks like a credentials bug and
-> is not one.
->
-> Measured on a 2 vCPU / 7 GB RHEL 9.6 host: the health endpoint returned
-> 502, then 503, then 200 roughly 80 seconds after the installer exited.
+**Type the registry exactly as you will push to it.** Whatever string you
+give here becomes the key in the file, and the key must match the
+`docker://` target: `registry.airgap.local` and
+`registry.airgap.local:8443` are different keys, and a mismatch fails the
+push with what looks like a credentials problem. Using one command for
+both the login and the file is what keeps them in step.
+
+Check what you got:
+
+```sh
+# ===== RUN ON: REGISTRY HOST =====
+ls -l ${OCP_AIRGAP_ROOT}/binaries/mirror-pull-secret.json       # 0600
+jq -r '.auths | keys[]' ${OCP_AIRGAP_ROOT}/binaries/mirror-pull-secret.json
+```
+
+> ⚠️ **Wait for Quay before logging in.** `mirror-registry install` prints
+> `Quay installed successfully` as soon as the containers start, but the
+> registry API takes minutes longer to answer — see
+> [Expect a slow first response](#expect-a-slow-first-response). Logging in
+> during that window fails with `Existing credentials are invalid`, which
+> looks like a credentials bug and is not one.
+
+> **Scripting it?** Non-interactively, pass `--username` and
+> `--password-stdin` explicitly. Without them `podman login` falls back to
+> an interactive prompt when stored credentials are not accepted, which
+> hangs the run and reports `reading username: EOF` rather than an auth
+> error:
 >
 > ```sh
-> until curl -s -o /dev/null -w '%{http_code}' \
->         https://registry.airgap.local:8443/health/instance | grep -q 200; do
->   sleep 5
-> done
+> printf '%s' "${QUAY_PASSWORD}" | podman login \
+>   --username init --password-stdin \
+>   --authfile ${OCP_AIRGAP_ROOT}/binaries/mirror-pull-secret.json \
+>   registry.airgap.local:8443
 > ```
->
-> `scripts/50-install-registry.sh` polls for this automatically.
+
+A registry you cannot log in to — a token-based enterprise one, or any
+registry not yet reachable — still needs the file assembled by hand. See
+[appendix-byo-registry.md](appendix-byo-registry.md#credentials).
 
 Quay's startup logs contain `AssertionError` tracebacks from `gevent`.
 These are normal noise, not a failure.
