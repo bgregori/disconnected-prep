@@ -92,6 +92,48 @@ it scales with the content set.
 
 ---
 
+## Read the error file, not the results table
+
+The summary oc-mirror prints at the end counts what it *completed*, not
+what failed. A single worker error aborts its batch, and everything the
+batch had not reached is reported as unmirrored:
+
+```
+ ✗  1 / 192 release images mirrored: Some release images failed to be mirrored
+ ✗  0 / 8 operator images mirrored
+ ✗  0 / 3 additional images mirrored
+```
+
+That looks like 202 failures. The authoritative count is the file it names
+on the last line:
+
+```sh
+# ===== RUN ON: REGISTRY HOST =====
+sed 's/sha256:[0-9a-f]*/sha256:…/g' \
+  ${OCP_AIRGAP_ROOT}/imports/${TAG}/working-dir/logs/mirroring_errors_*.txt \
+  | sort | uniq -c | sort -rn
+```
+
+One line there means one failure, and everything else was collateral.
+
+**Transient failures happen, and retrying is the first move.** A push that
+dies on a single error — a token request that got an unlucky `405`, a
+timeout under load — resumes cleanly: the archive and the cache are
+intact, and images already pushed are not sent again. Re-run the same
+command before investigating anything.
+
+If the same error recurs in the same place, it is not transient. For
+errors against your own registry under load, reduce concurrency:
+
+```sh
+--parallel-images 2 --parallel-layers 2
+```
+
+A 2 vCPU Quay serving a token request per image is the usual reason a
+self-hosted registry gets flaky partway through a large push.
+
+---
+
 ## What this generates
 
 Beyond pushing images, d2m writes the manifests that connect a cluster to

@@ -108,6 +108,34 @@ this reason, keeping the values shell-local.
 Note `REGISTRY_AUTH_FILE` is a genuine, intentional exception: oc-mirror
 reads it as the default `--authfile` path.
 
+### `N / M images mirrored` with a long list of apparent failures
+
+The results table counts completions; one worker error aborts its batch
+and everything unreached is reported as unmirrored. Read the file named on
+the last line instead:
+
+```sh
+# ===== RUN ON: BOTH HOSTS =====
+sed 's/sha256:[0-9a-f]*/sha256:…/g' <workspace>/working-dir/logs/mirroring_errors_*.txt \
+  | sort | uniq -c | sort -rn
+```
+
+One error line means one real failure. Re-run the push: it resumes, and a
+transient fault will not recur in the same place. See
+[06-push-to-registry.md](06-push-to-registry.md#read-the-error-file-not-the-results-table).
+
+### `Requesting bearer token: received unexpected HTTP status: 405`
+
+Seen once, mid-push, against your own Quay: transient. The same
+`GET /v2/auth` succeeds either side of it — confirm in
+`podman logs quay-app | grep ' 405 '`, where a one-off shows as a single
+request. Re-run the push.
+
+Seen on every attempt: the client is using the OAuth2 `POST` token flow,
+which Quay answers with 405. Check the auth file holds plain credentials
+rather than a token — `jq '.auths[] | keys' <authfile>` should show
+`auth`, not `identitytoken`.
+
 ### Package not found / operator silently absent
 
 Verify against the real catalog rather than assuming:
