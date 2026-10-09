@@ -210,6 +210,13 @@ additionalTrustBundle: |       # from install-config-fragment.yaml
 The registry hostname \`${REGISTRY_HOST}\` must resolve **from the cluster
 nodes**, not only from the registry host. Verify before generating the ISO.
 
+Boot-disk encryption is the other install-time decision, and it is not an
+install-config.yaml field: it is a MachineConfig placed in
+<install_dir>/openshift/ before the ignition configs are generated, using
+Clevis with TPM v2 and/or Tang. A cluster installed without it must be
+reprovisioned to get it. Nothing here needs mirroring for it, but Tang
+servers have to exist on the node network first.
+
 ## After you install
 
 \`\`\`sh

@@ -38,6 +38,14 @@ Bundle location: `________________________________`
 Three requirements. Missing any one fails the install, and the errors do not
 say so.
 
+Plus one decision that is not an `install-config.yaml` field and so gets
+missed: **boot-disk encryption**. It is a `MachineConfig` applied at the
+manifest stage, and adding it later means reprovisioning every node.
+
+- [ ] Disk encryption decided: TPM v2 ☐ · Tang/NBDE ☐ · both ☐ · none, accepted by ISSO ☐
+- [ ] If Tang: servers reachable from the node network, thumbprints in hand
+- [ ] If TPM v2: TPM 2.0 present and enabled in firmware on every node (vTPM on virtual nodes)
+
 - [ ] **`fips: true`** in `install-config.yaml` (if FIPS is required)
 - [ ] **`imageDigestSources`** pasted from the fragment
       → *the most commonly forgotten item; without it the bootstrap tries to

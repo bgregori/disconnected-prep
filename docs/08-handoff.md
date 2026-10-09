@@ -60,6 +60,52 @@ agent ISO attempts to reach `quay.io` during bootstrap. On an airgapped
 network that means the install hangs rather than failing cleanly, and the
 bootstrap logs do not make the cause obvious.
 
+---
+
+## Disk encryption: the other decision made at install
+
+`fips: true` is not the only hardening choice that cannot be revisited.
+Boot-disk encryption on RHCOS is configured **at the manifest stage**, and
+a cluster installed without it has to be reprovisioned to get it. For an
+accredited build that usually means reinstalling after the finding, so it
+belongs in this conversation rather than in a later one.
+
+It is easy to miss precisely because it is *not* an `install-config.yaml`
+field. It is a `MachineConfig` placed in `<install_dir>/openshift/` before
+the ignition configs are generated — one for `master`, one for `worker` —
+and RHCOS then encrypts the root filesystem with LUKS2, unlocked by
+[Clevis](https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html/installing/installation-configuration)
+in one of two modes:
+
+| Mode | Unlocks when | Enclave precondition |
+|---|---|---|
+| **TPM v2** | the disk is still in its original machine | a TPM 2.0 device, enabled in firmware — and on virtual nodes, a vTPM attached to the guest |
+| **Tang / NBDE** | the node can reach the Tang servers | one or more Tang servers reachable on the node network, and their thumbprints |
+
+Both can be combined with a `threshold`, which is what you want if the
+requirement is "decrypts only in this rack, on this network".
+
+Two interactions worth stating to the install side:
+
+- **FIPS changes the cipher.** With `fips: true` the LUKS2 volume uses
+  `aes-cbc-essiv:sha256`. That is expected, not a misconfiguration.
+- **Tang is infrastructure, not content.** Nothing here needs mirroring —
+  no extra images, no change to the ImageSetConfiguration — but a Tang
+  server that does not exist yet is a blocker discovered at install time,
+  on the wrong side of the airgap.
+
+Verify on a node afterwards, from a debug shell:
+
+```sh
+# ===== RUN ON: THE CLUSTER =====
+lsblk --fs                    # root partition shows crypto_LUKS
+cryptsetup status root        # type: LUKS2
+```
+
+📌 **Handoff** Record the decision either way. "Not encrypted, accepted by
+the ISSO" is a valid answer; "nobody asked" is the one that costs a
+rebuild.
+
 ### Building `imageDigestSources` by hand
 
 `scripts/90-handoff.sh` generates this, but you do not need it. The entries
