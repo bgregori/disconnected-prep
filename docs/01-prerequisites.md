@@ -143,6 +143,8 @@ echo "TMPDIR=${TMPDIR:-unset}"
 df -h "${TMPDIR:-/var/tmp}"
 
 # The helper is executed, not just written. This must print "exec OK".
+# TMPDIR may not exist yet -- create it, since the mirror needs it anyway.
+mkdir -p "${TMPDIR:-/tmp}"
 probe="${TMPDIR:-/tmp}/.probe.$$"
 printf '#!/bin/sh\nexit 0\n' > "${probe}" && chmod 0700 "${probe}"
 "${probe}" && echo "exec OK" || echo "EXEC BLOCKED -- noexec mount, or fapolicyd"

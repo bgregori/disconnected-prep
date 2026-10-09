@@ -189,19 +189,34 @@ check require_space "${tmp_blobs}" "${MIN_TMP_GB:-20}"
 
 # A noexec mount or a fapolicyd denial turns the space fix into an exec
 # failure partway through the run. Probe it now, while it is cheap to read.
-probe="${tmp_exec}/.preflight-exec-probe.$$"
-if printf '#!/bin/sh\nexit 0\n' > "${probe}" 2>/dev/null; then
+#
+# The directory may not exist yet: preflight runs first, and MIRROR_TMPDIR is
+# created by use_mirror_tmpdir when a mirror actually runs. Exec capability
+# is a property of the file system rather than the directory, so walk up to
+# the nearest existing ancestor and say which path was really tested.
+# Redirecting stderr BEFORE the output redirection matters -- otherwise a
+# failed open prints bash's own "No such file or directory" to the terminal.
+probe_dir="${tmp_exec}"
+while [[ -n "${probe_dir}" && "${probe_dir}" != "/" && ! -d "${probe_dir}" ]]; do
+  probe_dir="$(dirname "${probe_dir}")"
+done
+[[ -d "${probe_dir}" ]] || probe_dir="/tmp"
+if [[ "${probe_dir}" != "${tmp_exec}" ]]; then
+  info "${tmp_exec} does not exist yet; probing ${probe_dir}, which is the same file system"
+fi
+probe="${probe_dir}/.preflight-exec-probe.$$"
+if printf '#!/bin/sh\nexit 0\n' 2>/dev/null > "${probe}"; then
   chmod 0700 "${probe}" 2>/dev/null || true
   if "${probe}" 2>/dev/null; then
-    ok "${tmp_exec}: executes an unpacked binary"
+    ok "${probe_dir}: executes an unpacked binary"
   else
-    warn "${tmp_exec} will not execute a test binary (noexec mount, or fapolicyd)."
+    warn "${probe_dir} will not execute a test binary (noexec mount, or fapolicyd)."
     warn "  oc-mirror unpacks a helper there and runs it; it will fail on exec."
     failures=$((failures+1))
   fi
   rm -f "${probe}"
 else
-  warn "${tmp_exec} is not writable."
+  warn "${probe_dir} is not writable, so the exec probe could not run."
   failures=$((failures+1))
 fi
 
