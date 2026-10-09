@@ -128,15 +128,38 @@ Missing step 1 is the single most common disconnected-install failure.
 
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
-# -u with no colon: curl prompts, so the password misses both the shell
-# history and /proc/<pid>/cmdline
-curl -s -u init \
-  https://registry.airgap.local:8443/v2/_catalog | python3 -m json.tool | head -40
-
 oc adm release info \
   --authfile ${OCP_AIRGAP_ROOT}/binaries/mirror-pull-secret.json \
   registry.airgap.local:8443/openshift/release-images:4.21.26-x86_64
 ```
+
+That is the check that matters: it pulls the release manifest back out of
+your registry with the auth file the push used.
+
+To see every repository that landed, the registry catalog needs a **bearer
+token** — Quay's `/v2/` endpoints do not accept Basic credentials. Fetch
+one, then use it:
+
+```sh
+# ===== RUN ON: REGISTRY HOST =====
+REG=registry.airgap.local:8443
+TOKEN=$(curl -s -u init \
+  "https://${REG}/v2/auth?service=${REG}&scope=registry:catalog:*" | jq -r .token)
+
+curl -s -H "Authorization: Bearer ${TOKEN}" "https://${REG}/v2/_catalog" | jq .
+```
+
+`curl -u init` with no colon prompts for the password, keeping it out of
+your shell history and out of `/proc/<pid>/cmdline`. Passing credentials
+straight to `/v2/_catalog` instead returns
+
+```json
+{"error": "Invalid bearer token format"}
+```
+
+which reads like a malformed credential and is really just the wrong
+authentication scheme — the registry API speaks bearer tokens, and
+`/v2/auth` is where you get one.
 
 `oc-mirror` v2 publishes the release payload at
 `<registry>/openshift/release-images`, preserving upstream repository
