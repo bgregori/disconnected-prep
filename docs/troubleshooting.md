@@ -126,10 +126,13 @@ transient fault will not recur in the same place. See
 
 ### `Requesting bearer token: received unexpected HTTP status: 405`
 
-Seen once, mid-push, against your own Quay: transient. The same
-`GET /v2/auth` succeeds either side of it — confirm in
-`podman logs quay-app | grep ' 405 '`, where a one-off shows as a single
-request. Re-run the push.
+Against your own Quay, on the first push of a multi-architecture image
+into a namespace that does not exist yet: a race. The per-architecture
+copies run in parallel and compete to create the namespace. Confirm with
+`podman logs quay-app | grep ' 405 '` — the failures are all `pull,push`
+scope on the same one or two new repositories, against thousands of 200s.
+Re-run the push; the namespaces now exist. The script retries once by
+itself.
 
 Seen on every attempt: the client is using the OAuth2 `POST` token flow,
 which Quay answers with 405. Check the auth file holds plain credentials

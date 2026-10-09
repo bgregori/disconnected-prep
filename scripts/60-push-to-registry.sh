@@ -71,31 +71,69 @@ info "Pushing to docker://$(registry_ref)"
 # generates the cluster resources. Capture the status rather than letting
 # `set -e` abort here -- otherwise the run dies silently and you never learn
 # how much succeeded or which images failed.
-rc=0
-run_sh "umask 0022 && oc-mirror --v2 \
+push_once() {
+  run_sh "umask 0022 && oc-mirror --v2 \
   --config '${CFG}' \
   --from 'file://${FROM_DIR}' \
   --cache-dir '${CACHE_DIR}' \
   --authfile '${MIRROR_PULL_SECRET}' \
   ${extra[*]} \
-  docker://$(registry_ref)" || rc=$?
+  docker://$(registry_ref)"
+}
+
+latest_errlog() {
+  ls -t "${FROM_DIR}/working-dir/logs/mirroring_errors_"*.txt 2>/dev/null | head -1
+}
+
+# Every error line is a 405 on a bearer-token request?
+#
+# Observed on three separate clean builds: the FIRST push of a multi-arch
+# manifest list into a namespace that does not exist yet fails with
+#
+#   trying to reuse blob ... at destination: Requesting bearer token:
+#   received unexpected HTTP status: 405 METHOD NOT ALLOWED
+#
+# A manifest list fans out into one copy per architecture, those run in
+# parallel, and they race to create the namespace. Quay answers one of the
+# concurrent token requests 405. It is not transient -- it reproduces -- but
+# it is self-correcting: on a second run the namespace exists and the same
+# images go through. Four failures in 1,644 token requests, all confined to
+# the two namespaces being created for the first time.
+only_405_failures() {
+  local log="$1"
+  [[ -s "${log}" ]] || return 1
+  ! grep -qv '405 METHOD NOT ALLOWED' "${log}"
+}
+
+rc=0
+push_once || rc=$?
+
+if (( rc != 0 )) && only_405_failures "$(latest_errlog)"; then
+  echo >&2
+  warn "Every failure was a 405 on a bearer-token request -- the namespace race."
+  warn "Retrying once; the namespaces now exist, so these images should go through."
+  rc=0
+  push_once || rc=$?
+fi
 
 echo >&2
 if (( rc != 0 )); then
   warn "oc-mirror exited ${rc}: not every image was mirrored."
-  errlog=$(ls -t "${FROM_DIR}/working-dir/logs/mirroring_errors_"*.txt 2>/dev/null | head -1)
+  errlog=$(latest_errlog)
   if [[ -n "${errlog}" ]]; then
     warn "Failed images (${errlog}):"
     sed -e 's/^/    /' -e 's/\(.\{150\}\).*/\1.../' "${errlog}" >&2
   fi
   cat >&2 <<EOF
 
-  Transient blob/token errors are common when pushing many images at once to
-  a small registry host. The push is resumable and already-pushed images are
-  skipped, so the usual remedy is to lower parallelism and run it again:
+  A 405 namespace race is retried automatically, so these are different --
+  read the error file above rather than assuming. Re-running is still the
+  first move: the push resumes and already-pushed images are skipped. Note
+  that it re-extracts the archive first, so a retry is minutes, not seconds.
 
       PARALLEL_IMAGES=2 PARALLEL_LAYERS=2 SKIP_CHECKSUM=true $0
 
+  Lower parallelism is the remedy when the SAME image fails twice.
   Multi-architecture images (manifest lists) are mirrored one architecture at
   a time; a failure on one of them fails the whole image.
 EOF

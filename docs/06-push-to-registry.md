@@ -116,14 +116,32 @@ sed 's/sha256:[0-9a-f]*/sha256:…/g' \
 
 One line there means one failure, and everything else was collateral.
 
-**Transient failures happen, and retrying is the first move.** A push that
-dies on a single error — a token request that got an unlucky `405`, a
-timeout under load — resumes cleanly: the archive and the cache are
-intact, and images already pushed are not sent again. Re-run the same
-command before investigating anything.
+**The `405` namespace race, specifically.** The first push of a
+multi-architecture image into a namespace that does not exist yet fails
+with
 
-If the same error recurs in the same place, it is not transient. For
-errors against your own registry under load, reduce concurrency:
+```
+trying to reuse blob ... at destination: Requesting bearer token:
+received unexpected HTTP status: 405 METHOD NOT ALLOWED
+```
+
+A manifest list fans out into one copy per architecture; those run in
+parallel and race to create the namespace, and Quay answers one of the
+concurrent token requests `405`. This reproduces — it was seen on three
+separate clean builds, always on the first push, always confined to the
+namespaces being created for the first time, four failures out of 1,644
+token requests.
+
+It is also self-correcting. **Run the same command again**: the namespaces
+now exist and the images go through. `60-push-to-registry.sh` detects that
+every failure was a 405 and retries once by itself.
+
+**Retrying is cheap in effort, not in time.** The push resumes and
+already-pushed images are skipped, but oc-mirror re-extracts the whole
+archive first — minutes before it reaches the part that can skip anything.
+
+If the *same* image fails twice, it is not the race. For errors against
+your own registry under load, reduce concurrency:
 
 ```sh
 --parallel-images 2 --parallel-layers 2
