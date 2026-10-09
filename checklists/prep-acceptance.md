@@ -47,6 +47,10 @@ Environment: ______________________  Date: ____________  By: ____________
 - [ ] `TMPDIR` set **durably** off `/var/tmp` — the push is where it bites
 - [ ] Registry installed and running
 - [ ] `loginctl enable-linger` set — survives logout
+- [ ] Install credential rotated, and the handoff bundle rebuilt afterwards
+      if it predates the rotation — the installer printed the password to
+      stdout, and the auth file stores it reversibly
+- [ ] Install log and shell history scrubbed of the printed credential
 - [ ] Permission drop-in in place, paths match the real `QUAY_ROOT`
 - [ ] CA in the system trust store; `curl` succeeds without `-k`
 - [ ] Auth file key exactly matches the push target, port included

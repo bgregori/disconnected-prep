@@ -557,6 +557,104 @@ registry not yet reachable — still needs the file assembled by hand. See
 
 ---
 
+## Rotate the install credential
+
+The installer prints the password you gave it:
+
+```
+Quay is available at https://registry.airgap.local:8443 with credentials (init, <password>)
+```
+
+Nothing suppresses that. It is in the terminal, in whatever log captured
+the run, and — if you followed the advice to keep the transcript as
+evidence — in your accreditation package. The credential is also recoverable
+from the auth file, which stores it reversibly rather than hashed:
+
+```sh
+# ===== RUN ON: REGISTRY HOST =====
+jq -r '.auths[].auth' ${OCP_AIRGAP_ROOT}/binaries/mirror-pull-secret.json | base64 -d
+```
+
+So treat `init` as a **build-time credential**: used to stand the registry
+up, rotated before anything leaves this host.
+
+> ⚠️ **Rotate before [08-handoff.md](08-handoff.md), not after.** The same
+> credential is what the *cluster* authenticates with — the auth file goes
+> into the handoff bundle and then into `install-config.yaml`. Rotate after
+> the bundle is built and the cluster fails to pull at bootstrap, on the far
+> side of the airgap, with an error that points at the registry. If the
+> bundle already exists, rotate and then regenerate it.
+
+**The API cannot help you start.** Quay's API takes OAuth bearer tokens
+only; basic credentials are refused:
+
+```sh
+# ===== RUN ON: REGISTRY HOST =====
+curl -s -o /dev/null -w '%{http_code}\n' -u init \
+  https://registry.airgap.local:8443/api/v1/user/        # 401
+```
+
+The first token has to be minted in the web UI, which in an enclave means
+a tunnel — see [Verify from somewhere else](#verify-from-somewhere-else)
+for why the hostname rather than `localhost`:
+
+```sh
+# ===== RUN ON: THE HOST YOU BROWSE FROM =====
+ssh -L 8443:<registry-host-ip>:8443 <bastion>
+# then browse https://registry.airgap.local:8443 and sign in as init
+```
+
+Change the password for `init` there, then rebuild the auth file and prove
+the new credential works before deleting anything:
+
+```sh
+# ===== RUN ON: REGISTRY HOST =====
+podman login --authfile ${OCP_AIRGAP_ROOT}/binaries/mirror-pull-secret.json \
+  -u init registry.airgap.local:8443
+
+oc adm release info -a ${OCP_AIRGAP_ROOT}/binaries/mirror-pull-secret.json \
+  registry.airgap.local:8443/openshift/release-images:${VER}-x86_64 >/dev/null \
+  && echo "new credential works"
+```
+
+A failed login writes nothing, so a mistyped password cannot leave you with
+a broken auth file — it fails with `invalid username/password` and the old
+file stands.
+
+Then remove the old one from everywhere it landed:
+
+```sh
+# ===== RUN ON: REGISTRY HOST =====
+shred -u ~/install-run.log 2>/dev/null                  # or wherever you captured it
+sed -i '/^QUAY_PASSWORD=/d' ${OCP_AIRGAP_ROOT:+config/prep.env} 2>/dev/null
+history -c && rm -f ~/.bash_history
+```
+
+`prep.env` only needs `QUAY_PASSWORD` for `50-install-registry.sh`, which
+has already run. Deleting the line is better than updating it.
+
+### Least privilege, which is the point
+
+`init` is a Quay **superuser**. Rotating its password still leaves the
+cluster holding superuser credentials to pull images, and an assessor will
+ask why. The end state worth building is two scoped accounts:
+
+| Account | Rights | Lives where |
+|---|---|---|
+| `init` | superuser | registry host only, break-glass, never in a bundle |
+| push robot | write on the mirrored namespaces | this host's auth file |
+| pull robot | read-only | the handoff bundle, and so `install-config.yaml` |
+
+> **Not yet validated.** Robot accounts are created through the UI or the
+> API with a token minted there, and this repo has not exercised that path
+> end to end. The rotation above has been: the reversibility of the auth
+> file, the `401` on basic auth, the login regeneration and its failure
+> mode were all confirmed on a live install. Treat the two-robot layout as
+> the design target and verify it in your environment before writing it
+> into a procedure.
+
+---
+
 ## Verify from somewhere else
 
 The registry working on the registry host proves very little. Resolving a
