@@ -10,6 +10,7 @@ source "$(dirname "$0")/lib/common.sh"
 load_env
 require_vars OCP_VERSION REGISTRY_HOST REGISTRY_PORT MIRROR_PULL_SECRET OCP_AIRGAP_ROOT IMPORTS_DIR EXPORT_TAG
 require_cmds oc
+check_version_matches_import
 
 REG="$(registry_ref)"
 CR="${IMPORTS_DIR}/${EXPORT_TAG}/working-dir/cluster-resources"

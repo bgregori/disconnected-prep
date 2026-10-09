@@ -142,6 +142,17 @@ else
         warn "  Filling / takes the host down, not just the registry."
         warn "  To relocate, set graphroot in ~/.config/containers/storage.conf"
         warn "  BEFORE installing -- see docs/05-registry.md"
+      elif command -v ls >/dev/null && [[ "$(getenforce 2>/dev/null)" == "Enforcing" ]]; then
+        # A relocated graphroot on a freshly provisioned volume has no
+        # fcontext rule, so it lands as default_t and the containers cannot
+        # read their own storage. The symptom is a Quay install that times
+        # out on /health/instance -- see docs/05-registry.md.
+        ctx=$(ls -Zd "${graph_root}" 2>/dev/null | awk '{print $1}')
+        if [[ "${ctx}" == *default_t* || "${ctx}" == *unlabeled_t* ]]; then
+          warn "Relocated podman storage is labelled ${ctx}; containers cannot read it."
+          warn "  sudo semanage fcontext -a -e /var/lib/containers ${graph_root}"
+          warn "  sudo restorecon -Rv ${graph_root}"
+        fi
       fi
     else
       warn "Could not determine podman storage root; check it manually."

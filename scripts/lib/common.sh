@@ -178,10 +178,30 @@ advise_tmux() {
   command -v tmux >/dev/null 2>&1 || return 0
   warn "Not inside tmux. This runs for a long time; a dropped SSH session kills it."
   warn "  sudo loginctl enable-linger \$USER"
-  warn "  systemd-run --scope --user tmux new -s mirror"
+  warn "  systemd-run --scope --user tmux new -s ${1:-mirror}"
   if [[ -t 0 && "${ASSUME_YES:-false}" != "true" ]]; then
     confirm "Continue anyway?"
   else
     warn "  (non-interactive -- continuing)"
   fi
+}
+
+# OCP_VERSION comes from prep.env; the archive carries the version that was
+# actually mirrored. When they disagree -- a bumped prep.env, the wrong
+# EXPORT_TAG -- every lookup fails as "manifest unknown", which reads as a
+# broken push rather than as a wrong tag. The by-hand chapters read the
+# version out of the ImageSetConfiguration for the same reason.
+check_version_matches_import() {
+  local cfg="${IMPORTS_DIR:-}/${EXPORT_TAG:-}/imageset-config.yaml"
+  [[ -f "${cfg}" ]] || return 0
+  local mirrored
+  mirrored=$(awk '/minVersion:/{print $2; exit}' "${cfg}" 2>/dev/null)
+  [[ -n "${mirrored}" ]] || return 0
+  if [[ "${mirrored}" != "${OCP_VERSION}" ]]; then
+    die "OCP_VERSION=${OCP_VERSION}, but ${cfg} mirrored ${mirrored}.
+       Nothing is published under ${OCP_VERSION}; lookups would fail as
+       'manifest unknown'. Set OCP_VERSION=\"${mirrored}\" in config/prep.env,
+       or point EXPORT_TAG at the import you meant."
+  fi
+  info "OCP_VERSION ${OCP_VERSION} matches the mirrored ImageSetConfiguration"
 }

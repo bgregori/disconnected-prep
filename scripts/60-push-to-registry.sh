@@ -62,7 +62,7 @@ extra=()
 [[ "${PARALLEL_LAYERS:-}" ]] && extra+=(--parallel-layers "${PARALLEL_LAYERS}")
 [[ "${USE_MAX_NESTED_PATHS:-false}" == "true" ]] && extra+=(--max-nested-paths "${MAX_NESTED_PATHS:-2}")
 
-advise_tmux
+advise_tmux push
 
 info "Pushing to docker://$(registry_ref)"
 # umask relaxed: oc-mirror writes cluster-resources that other accounts read.

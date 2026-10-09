@@ -16,6 +16,7 @@ source "$(dirname "$0")/lib/common.sh"
 load_env
 require_vars OCP_AIRGAP_ROOT OCP_VERSION OCP_ARCH REGISTRY_HOST REGISTRY_PORT MIRROR_PULL_SECRET IMPORTS_DIR EXPORT_TAG
 require_cmds oc
+check_version_matches_import
 
 BIN="${OCP_AIRGAP_ROOT}/binaries"
 run mkdir -p "${BIN}"

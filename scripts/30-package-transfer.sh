@@ -53,6 +53,9 @@ else
 fi
 
 info "Generating checksum manifest"
+# Reads and hashes every byte, single-threaded, with no output until done:
+# several minutes for 29 GB on 2 vCPU, and the far side pays it again.
+info "Checksumming the bundle (minutes for a large archive; no output until it finishes)"
 run_sh "cd '${SRC}' && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS"
 
 ok "Export ready: ${SRC}"
