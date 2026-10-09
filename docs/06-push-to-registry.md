@@ -129,12 +129,18 @@ Missing step 1 is the single most common disconnected-install failure.
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
 oc adm release info \
-  --authfile ${OCP_AIRGAP_ROOT}/binaries/mirror-pull-secret.json \
+  --registry-config ${OCP_AIRGAP_ROOT}/binaries/mirror-pull-secret.json \
   registry.airgap.local:8443/openshift/release-images:4.21.26-x86_64
 ```
 
 That is the check that matters: it pulls the release manifest back out of
-your registry with the auth file the push used.
+your registry with the same credentials the push used.
+
+> **`--registry-config`, not `--authfile`.** The two tools spell it
+> differently — `oc-mirror` takes `--authfile`, every `oc` subcommand takes
+> `-a` / `--registry-config` — and this chapter runs them back to back
+> against the same file. `--authfile` on an `oc` command fails with
+> `error: unknown flag: --authfile`.
 
 To see every repository that landed, the registry catalog needs a **bearer
 token** — Quay's `/v2/` endpoints do not accept Basic credentials. Fetch
