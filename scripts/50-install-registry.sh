@@ -69,6 +69,15 @@ Run ./scripts/40-stage-transfer.sh first -- see docs/05-registry.md."
   run tar -xzf "${TARBALL}" -C "${BIN}"
 fi
 
+# mirror-registry is a freshly extracted binary executed straight out of the
+# tarball, so fapolicyd denies it exactly as it denies oc and oc-mirror --
+# "Operation not permitted", EPERM, from the script's own exec. Unlike those
+# two it does not live in /usr/local/bin and nothing else allowlists it.
+if [[ -x "${BIN}/mirror-registry" ]]; then
+  run sudo restorecon -v "${BIN}/mirror-registry" || true
+  fapolicyd_trust "${BIN}/mirror-registry"
+fi
+
 # --- firewall --------------------------------------------------------------
 
 if systemctl is-active --quiet firewalld 2>/dev/null; then
@@ -102,14 +111,43 @@ info "Installing Quay at ${QUAY_ROOT} for ${REGISTRY_HOST}"
 # 077 for all local interactive user accounts), so it is removed on the way
 # out -- by trap, so an interrupted or failed install cannot leave it behind.
 UMASK_LINE="umask 0022   # disconnected-prep: mirror-registry install only"
-restore_umask() {
+# mirror-registry drives its playbook over ssh BACK INTO this host, and
+# Ansible writes AnsiballZ_*.py modules into ~/.ansible/tmp and runs them.
+# fapolicyd's %languages rule denies the interpreter opening them:
+#
+#   /usr/bin/python3: can't open file '.../AnsiballZ_setup.py':
+#   [Errno 1] Operation not permitted
+#
+# Per-file trust cannot help -- the names are per-task and random. A scoped
+# rule covering only that directory can, and unlike stopping fapolicyd it
+# leaves application allowlisting in force everywhere else. Rule changes need
+# fagenrules; fapolicyd-cli --update only reloads the trust database.
+FAPOLICYD_RULE="/etc/fapolicyd/rules.d/30-ansible-tmp.rules"
+restore_host() {
   if grep -qxF "${UMASK_LINE}" "${HOME}/.bashrc" 2>/dev/null; then
     grep -vxF "${UMASK_LINE}" "${HOME}/.bashrc" > "${HOME}/.bashrc.$$" \
       && mv "${HOME}/.bashrc.$$" "${HOME}/.bashrc"
     info "Removed the temporary umask from ~/.bashrc (V-258044)"
   fi
+  if [[ "${FAPOLICYD_RULE_ADDED:-false}" == "true" ]]; then
+    sudo rm -f "${FAPOLICYD_RULE}" && sudo fagenrules --load >/dev/null 2>&1 || true
+    info "Removed the temporary fapolicyd rule for ~/.ansible/tmp"
+  fi
 }
-trap restore_umask EXIT
+trap restore_host EXIT
+
+FAPOLICYD_RULE_ADDED=false
+if systemctl is-active --quiet fapolicyd 2>/dev/null; then
+  warn "Temporarily allowing the interpreter to read ~/.ansible/tmp (fapolicyd)."
+  sudo tee "${FAPOLICYD_RULE}" >/dev/null <<RULE
+# Added by disconnected-prep scripts/50-install-registry.sh for the duration
+# of the mirror-registry install, which runs Ansible against this host.
+allow perm=open all : dir=${HOME}/.ansible/tmp/
+allow perm=execute all : dir=${HOME}/.ansible/tmp/
+RULE
+  run sudo fagenrules --load
+  FAPOLICYD_RULE_ADDED=true
+fi
 
 warn "Temporarily relaxing this account's umask for the install (V-258044)."
 printf '%s\n' "${UMASK_LINE}" >> "${HOME}/.bashrc"
@@ -125,7 +163,7 @@ info "+ ${BIN}/mirror-registry install --quayHostname ${REGISTRY_HOST} --quayRoo
   --initUser "${QUAY_USER}" \
   --initPassword "${QUAY_PASSWORD}"
 
-restore_umask
+restore_host
 trap - EXIT
 
 # --- permission drop-in (applied AFTER install creates the units) ----------

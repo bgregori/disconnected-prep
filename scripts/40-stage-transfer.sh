@@ -52,14 +52,7 @@ if [[ -f "${BIN}/openshift-client-linux.tar.gz" ]]; then
   # relabelling changes the file.
   run sudo restorecon -v /usr/local/bin/oc /usr/local/bin/oc-mirror
 
-  if command -v fapolicyd-cli >/dev/null 2>&1 && systemctl is-active --quiet fapolicyd; then
-    info "fapolicyd is active -- adding binaries to the allowlist"
-    run sudo fapolicyd-cli --file add /usr/local/bin/oc
-    run sudo fapolicyd-cli --file add /usr/local/bin/oc-mirror
-    run sudo fapolicyd-cli --update
-  else
-    info "fapolicyd not active -- skipping allowlist step"
-  fi
+  fapolicyd_trust /usr/local/bin/oc /usr/local/bin/oc-mirror
 else
   info "No client tarballs staged -- assuming oc/oc-mirror are already installed."
 fi

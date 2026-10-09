@@ -205,3 +205,33 @@ check_version_matches_import() {
   fi
   info "OCP_VERSION ${OCP_VERSION} matches the mirrored ImageSetConfiguration"
 }
+
+# fapolicyd trust is per file, and `--file add` exits NON-ZERO when the entry
+# already exists:
+#
+#   ERROR: After removing duplicates, there is nothing to add
+#
+# Under `set -e` that aborts an otherwise fine re-run, which is exactly when
+# you are most likely to be re-running: after fixing something else. Add only
+# what is missing, then update once.
+fapolicyd_trust() {
+  command -v fapolicyd-cli >/dev/null 2>&1 || return 0
+  systemctl is-active --quiet fapolicyd 2>/dev/null || return 0
+  local added=false f
+  for f in "$@"; do
+    [[ -e "${f}" ]] || continue
+    # --dump-db reads the TRUST DATABASE. --list prints the loaded rules and
+    # never mentions a trusted file, so grepping it always reports absent.
+    if sudo fapolicyd-cli --dump-db 2>/dev/null | awk -v p="${f}" '$2 == p {found=1} END {exit !found}'; then
+      info "fapolicyd: ${f} already trusted"
+    else
+      info "fapolicyd: trusting ${f}"
+      run sudo fapolicyd-cli --file add "${f}"
+      added=true
+    fi
+  done
+  if [[ "${added}" == "true" ]]; then
+    run sudo fapolicyd-cli --update
+    sleep 2
+  fi
+}

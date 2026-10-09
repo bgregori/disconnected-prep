@@ -185,6 +185,12 @@ host is infrastructure the cluster depends on for the life of the cluster.
 cd ${OCP_AIRGAP_ROOT}/binaries
 tar -xzf mirror-registry.tar.gz
 
+# Freshly extracted, executed from here, and not in /usr/local/bin -- so
+# fapolicyd denies it unless you say otherwise. See below.
+sudo restorecon -v mirror-registry
+sudo fapolicyd-cli --file add "$(pwd)/mirror-registry"
+sudo fapolicyd-cli --update
+
 sudo firewall-cmd --add-port 8443/tcp --permanent
 sudo firewall-cmd --reload
 
@@ -218,6 +224,51 @@ sed -i '/^umask 0022$/d' ~/.bashrc
 sudo find /home -maxdepth 2 -type f -name ".[^.]*" \
   -exec grep -iH -d skip --exclude=.bash_history umask {} \;   # no output
 ```
+
+> ⚠️ **STIG The installer's own Ansible is blocked too.** `mirror-registry`
+> does not configure Quay from your shell: it SSHes back into this host and
+> runs an Ansible playbook, which writes `AnsiballZ_*.py` modules into
+> `~/.ansible/tmp` and executes them. fapolicyd's `%languages` rule denies
+> the interpreter *opening* them:
+>
+> ```
+> /usr/bin/python3: can't open file '.../AnsiballZ_setup.py':
+> [Errno 1] Operation not permitted
+> ```
+>
+> Per-file trust cannot fix this — the filenames are per-task and random. A
+> scoped rule covering just that directory can, and unlike stopping
+> fapolicyd it leaves application allowlisting in force everywhere else:
+>
+> ```sh
+> sudo tee /etc/fapolicyd/rules.d/30-ansible-tmp.rules <<EOF
+> allow perm=open all : dir=${HOME}/.ansible/tmp/
+> allow perm=execute all : dir=${HOME}/.ansible/tmp/
+> EOF
+> sudo fagenrules --load
+> ```
+>
+> **`fagenrules`, not `fapolicyd-cli --update`.** The latter reloads the
+> trust database and silently does nothing for a rule change — the install
+> fails again identically, which is a long way to go to learn it. Confirm
+> with `sudo fapolicyd-cli --list | grep ansible`.
+>
+> Remove the rule when the install finishes; it is a deviation while it
+> exists, and nothing afterwards needs it. `50-install-registry.sh` adds and
+> removes it by `trap`, so a failed install cannot leave it behind.
+
+> ⚠️ **STIG Allowlist `mirror-registry` before running it.** It is a
+> binary you just unpacked from a tarball, executed directly from the
+> staging directory, so fapolicyd refuses it:
+>
+> ```
+> ./mirror-registry: Operation not permitted
+> ```
+>
+> "Operation not permitted" is `EPERM` and means fapolicyd — as opposed to
+> "Permission denied", `EACCES`, which is ordinary file permissions. The
+> tooling step earlier allowlisted `oc` and `oc-mirror`; nothing covers
+> this one, because it never moves to `/usr/local/bin`.
 
 > ⚠️ **Create `--quayRoot` yourself first.** `mirror-registry` drives an
 > embedded Ansible playbook as the invoking user, and that user cannot

@@ -45,14 +45,7 @@ run sudo restorecon -v /usr/local/bin/oc /usr/local/bin/oc-mirror
 
 # fapolicyd: STIG requires application allowlisting. Unlisted binaries are
 # refused with "Operation not permitted" even as root.
-if command -v fapolicyd-cli >/dev/null 2>&1 && systemctl is-active --quiet fapolicyd; then
-  info "fapolicyd is active -- adding binaries to the allowlist"
-  run sudo fapolicyd-cli --file add /usr/local/bin/oc
-  run sudo fapolicyd-cli --file add /usr/local/bin/oc-mirror
-  run sudo fapolicyd-cli --update
-else
-  info "fapolicyd not active -- skipping allowlist step"
-fi
+fapolicyd_trust /usr/local/bin/oc /usr/local/bin/oc-mirror
 
 # Assert rather than report. A binary that does not execute is the whole
 # failure mode this step exists to prevent, and fapolicyd takes a moment to

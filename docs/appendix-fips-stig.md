@@ -71,7 +71,7 @@ Verify:
 
 ```sh
 # ===== RUN ON: BOTH HOSTS =====
-fapolicyd-cli --list | grep -c oc-mirror     # non-zero
+sudo fapolicyd-cli --dump-db | grep -c oc-mirror   # non-zero
 oc version --client                          # now runs
 ```
 
@@ -138,6 +138,58 @@ EOF
 > this reason. If you extend it, keep doing so: a `.py` helper sitting
 > beside the shell scripts will not run on a hardened host, and the error
 > will not point at fapolicyd.
+
+---
+
+## fapolicyd blocks the mirror-registry installer, twice
+
+*Both handled by [05-registry.md](05-registry.md), which allowlists the
+binary and adds a scoped rule for the playbook.*
+
+**Symptom**
+
+Two different failures, a few seconds apart in the same install:
+
+```
+./mirror-registry: Operation not permitted
+/usr/bin/python3: can't open file '.../AnsiballZ_setup.py': [Errno 1] Operation not permitted
+```
+
+**Cause**
+
+The first is the binary itself: freshly unpacked from a tarball, executed
+out of the staging directory, never added to the trust database. It is not
+covered by the tooling step, because unlike `oc` and `oc-mirror` it never
+moves to `/usr/local/bin`.
+
+The second is subtler. `mirror-registry` SSHes back into the same host and
+runs an Ansible playbook; Ansible writes a Python module per task into
+`~/.ansible/tmp` and executes it. The `%languages` rule denies the
+interpreter opening them, and per-file trust is useless against filenames
+that are random per task.
+
+**Fix**
+
+```sh
+# ===== RUN ON: REGISTRY HOST =====
+sudo fapolicyd-cli --file add "$(pwd)/mirror-registry"
+sudo fapolicyd-cli --update            # trust database
+
+sudo tee /etc/fapolicyd/rules.d/30-ansible-tmp.rules <<EOF
+allow perm=open all : dir=${HOME}/.ansible/tmp/
+allow perm=execute all : dir=${HOME}/.ansible/tmp/
+EOF
+sudo fagenrules --load                 # RULES -- a different command
+```
+
+The two reload commands are not interchangeable, and using the wrong one
+fails silently: `fapolicyd-cli --update` reloads the trust database,
+`fagenrules --load` recompiles `rules.d`. A rule added without `fagenrules`
+is simply not in effect.
+
+This is where "just disable fapolicyd for the install", which other guides
+suggest, comes from. The scoped rule achieves the same install without
+turning application allowlisting off host-wide, and is removed afterwards.
 
 ---
 
