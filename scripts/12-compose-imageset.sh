@@ -23,7 +23,7 @@ require_cmds python3
 PROFILE_DIR="${REPO_ROOT}/imageset-configs/profiles"
 BASE="${REPO_ROOT}/imageset-configs/base-platform.yaml"
 
-# Derive the catalog minor version (4.21.26 -> 4.21) used by profile fragments.
+# Derive the catalog minor version (4.21.34 -> 4.21) used by profile fragments.
 OCP_MINOR="${OCP_VERSION%.*}"
 export OCP_MINOR
 

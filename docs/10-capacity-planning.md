@@ -248,19 +248,19 @@ delete:
   platform:
     channels:
       - name: stable-4.21
-        minVersion: 4.21.26
-        maxVersion: 4.21.26
+        minVersion: 4.21.34
+        maxVersion: 4.21.34
 EOF
 
 # Stage 1 -- generate and REVIEW the delete plan
 oc-mirror delete --v2 --config delete-isc.yaml \
   --workspace file://${OCP_AIRGAP_ROOT}/mirror-out \
-  --generate --delete-id retire-4.21.26 \
+  --generate --delete-id retire-4.21.34 \
   docker://registry.example.com:8443
 
 # Stage 2 -- execute, after reading the generated file
 oc-mirror delete --v2 \
-  --delete-yaml-file ${OCP_AIRGAP_ROOT}/mirror-out/working-dir/delete/delete-images-retire-4.21.26.yaml \
+  --delete-yaml-file ${OCP_AIRGAP_ROOT}/mirror-out/working-dir/delete/delete-images-retire-4.21.34.yaml \
   --force-cache-delete true \
   docker://registry.example.com:8443
 ```

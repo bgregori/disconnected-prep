@@ -77,7 +77,7 @@ promise a customer that every delta is small.
 For a z-stream upgrade, two things change: the version you are mirroring
 and the tag that identifies this run. By hand, the version goes into the
 ImageSetConfiguration you edit below, and the tag is the export directory
-you create — `2026-12-01_z-stream-4.21.28` in the examples that follow.
+you create — `2026-12-01_z-stream-4.21.36` in the examples that follow.
 Dating the tag and naming its purpose is what makes the export directory
 self-describing a year later.
 
@@ -85,8 +85,8 @@ self-describing a year later.
 >
 > ```sh
 > # ===== EDIT IN: config/prep.env on the CONNECTED BASTION =====
-> OCP_VERSION="4.21.28"        # was 4.21.26
-> EXPORT_TAG="2026-12-01_z-stream-4.21.28"
+> OCP_VERSION="4.21.36"        # was 4.21.34
+> EXPORT_TAG="2026-12-01_z-stream-4.21.36"
 > ```
 
 Then regenerate with the same profiles as before:
@@ -103,8 +103,8 @@ range by hand in the generated config:
     channels:
       - name: stable-4.21
         type: ocp
-        minVersion: 4.21.26      # currently installed
-        maxVersion: 4.21.28      # target
+        minVersion: 4.21.34      # currently installed
+        maxVersion: 4.21.36      # target
 ```
 
 Keeping the installed version in range matters: it lets the cluster compute
@@ -158,11 +158,11 @@ is already on the other side.
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
 : "${OCP_AIRGAP_ROOT:?set it first -- see 01-prerequisites.md}"
-cd ${OCP_AIRGAP_ROOT}/imports/2026-12-01_z-stream-4.21.28
+cd ${OCP_AIRGAP_ROOT}/imports/2026-12-01_z-stream-4.21.36
 sha256sum -c SHA256SUMS
 
 cd ${OCP_AIRGAP_ROOT}
-EXPORT_TAG=2026-12-01_z-stream-4.21.28 ./scripts/60-push-to-registry.sh
+EXPORT_TAG=2026-12-01_z-stream-4.21.36 ./scripts/60-push-to-registry.sh
 ```
 
 Note this is the **full `oc-mirror` command**, with `--v2`, `--config` and
@@ -173,7 +173,7 @@ forms seen in some guides are missing required flags.
 
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
-EXPORT_TAG=2026-12-01_z-stream-4.21.28 ./scripts/80-verify-mirror.sh
+EXPORT_TAG=2026-12-01_z-stream-4.21.36 ./scripts/80-verify-mirror.sh
 ```
 
 For an upgrade, extract the matching installer too — the binary is
@@ -181,14 +181,14 @@ version-specific:
 
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
-EXPORT_TAG=2026-12-01_z-stream-4.21.28 ./scripts/70-extract-installer.sh
+EXPORT_TAG=2026-12-01_z-stream-4.21.36 ./scripts/70-extract-installer.sh
 ```
 
 ### 7. Hand off
 
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
-EXPORT_TAG=2026-12-01_z-stream-4.21.28 ./scripts/90-handoff.sh
+EXPORT_TAG=2026-12-01_z-stream-4.21.36 ./scripts/90-handoff.sh
 ```
 
 Each delta produces new `cluster-resources/`, and they must be applied —
@@ -313,12 +313,12 @@ For completeness, what the install side does with a delta:
 oc apply -f cluster-resources/
 
 # for an upgrade
-oc adm upgrade --to=4.21.28
+oc adm upgrade --to=4.21.36
 ```
 
 Each delta refreshes the graph-data image, so OSUS learns about the new
 release once `cluster-resources/` is applied. Give it a minute, then
-`oc adm upgrade` should list 4.21.28 as available before you ask for it.
+`oc adm upgrade` should list 4.21.36 as available before you ask for it.
 
 > **Mirrored with `graph: false`?** Then there is no OSUS and no
 > recommended updates, so `--to` has nothing to select from. Name the
@@ -326,7 +326,7 @@ release once `cluster-resources/` is applied. Give it a minute, then
 >
 > ```sh
 > DIGEST=$(oc adm release info -o 'jsonpath={.digest}{"\n"}' \
->   registry.airgap.local:8443/openshift/release-images:4.21.28-x86_64)
+>   registry.airgap.local:8443/openshift/release-images:4.21.36-x86_64)
 >
 > oc adm upgrade --allow-explicit-upgrade \
 >   --to-image registry.airgap.local:8443/openshift/release-images@${DIGEST}

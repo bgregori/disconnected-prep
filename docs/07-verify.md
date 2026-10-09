@@ -20,8 +20,14 @@ possibly a scheduled transfer window.
 # ===== RUN ON: REGISTRY HOST =====
 : "${OCP_AIRGAP_ROOT:?set it first -- see 01-prerequisites.md}"
 export REG=registry.airgap.local:8443
-export VER=4.21.26
-export IDMS=${OCP_AIRGAP_ROOT}/imports/2026-10-02_initial/working-dir/cluster-resources/idms-oc-mirror.yaml
+export TAG=2026-10-02_initial
+export IDMS=${OCP_AIRGAP_ROOT}/imports/${TAG}/working-dir/cluster-resources/idms-oc-mirror.yaml
+
+# Read the version out of the config you mirrored, rather than retyping it --
+# a literal here that disagrees with the archive fails as "manifest unknown"
+export VER=$(awk '/minVersion:/{print $2; exit}' \
+  ${OCP_AIRGAP_ROOT}/imports/${TAG}/imageset-config.yaml)
+echo "${VER:?could not read minVersion from the ImageSetConfiguration}"
 
 oc adm release extract \
   --registry-config ${OCP_AIRGAP_ROOT}/binaries/mirror-pull-secret.json \

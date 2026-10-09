@@ -128,10 +128,19 @@ Missing step 1 is the single most common disconnected-install failure.
 
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
+TAG=2026-10-02_initial
+VER=$(awk '/minVersion:/{print $2; exit}' \
+  ${OCP_AIRGAP_ROOT}/imports/${TAG}/imageset-config.yaml)
+
 oc adm release info \
   --registry-config ${OCP_AIRGAP_ROOT}/binaries/mirror-pull-secret.json \
-  registry.airgap.local:8443/openshift/release-images:4.21.26-x86_64
+  registry.airgap.local:8443/openshift/release-images:${VER}-x86_64
 ```
+
+The version comes out of the ImageSetConfiguration you mirrored rather
+than being retyped. A literal that disagrees with the archive fails as
+`manifest unknown: manifest unknown`, which reads like a broken push and
+is really a wrong tag.
 
 That is the check that matters: it pulls the release manifest back out of
 your registry with the same credentials the push used.

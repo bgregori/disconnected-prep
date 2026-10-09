@@ -25,7 +25,7 @@ operator is gigabytes; the cost of omitting one is a week.
 
 **Platform**
 
-- [ ] Exact OpenShift version (pinned z-stream, e.g. `4.21.26`)
+- [ ] Exact OpenShift version (pinned z-stream, e.g. `4.21.34`)
 - [ ] Architecture(s)
 - [ ] Running **without** the OpenShift Update Service? → `graph: false`
       → *the default is `graph: true`, which mirrors the update graph so
