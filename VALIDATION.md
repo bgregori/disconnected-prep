@@ -167,6 +167,62 @@ version costs close to a full payload. This is the basis for
 | Quay healthy after installer exits | ~80 s (502 → 503 → 200) |
 | Catalog FBC extraction | ~2 min, cached thereafter |
 
+## Second pass: the script path, 2026-10-09
+
+The first pass was executed by hand. This one ran `scripts/` end to end on
+a freshly provisioned sandbox — the same hardened shape (RHEL 9.6, FIPS
+enabled, SELinux enforcing, `umask 0077`, fapolicyd active) but a clean
+build, so nothing was pre-warmed by earlier manual work.
+
+| Step | Result |
+|---|---|
+| `00-preflight` pass 1 | Failed as designed on missing tooling; found a bug in its own TMPDIR probe |
+| `10-fetch-binaries` | Clean, including `restorecon` and the fapolicyd allowlist |
+| `12-compose-imageset` / `15-dry-run` | 203 images resolved |
+| `20-mirror-to-disk` | **192/192, 8/8, 3/3 — 14m27s** |
+| `30-package-transfer` | Bundle with archive, binaries, repo, SHA256 manifest |
+| `50-install-registry` | Three fapolicyd failures first; clean once fixed |
+| `60-push-to-registry` | 200/203, then **3/3 on retry — 21m47s, then 11m35s** |
+| `70` / `80` | Installer extracted; **verification 7 passed, 0 failed** |
+| `90-handoff` | 936 MB bundle, three correct `imageDigestSources` entries |
+
+### Measured, on a 500 GB `/data` and a 199 GB root
+
+| Where | Size |
+|---|---|
+| connected cache | 26 GB |
+| connected `mirror-out` | 33 GB |
+| connected export | 30 GB |
+| registry import | 34 GB |
+| registry cache | 26 GB |
+| podman graphroot (the images) | 28 GB |
+| `QUAY_ROOT` | **32 KB** |
+| handoff bundle | 936 MB |
+| **registry host total** | **93 GB of /data** |
+
+`QUAY_ROOT` at 32 KB against 28 GB of image storage is the clearest
+possible statement of why `--quayRoot` is not where to point your large
+volume.
+
+### What this pass proved that the by-hand pass could not
+
+Every by-hand fix held under the scripts: the subuid arithmetic derived
+host UID 101000 unaided, `quay-config` came out `drwxr-x---+` with
+`user:101000:r-x` and `other::---`, the auth file carried only `auth`, and
+`/v2/` answered 401 without `-k`. The `~/.bashrc` umask window was removed
+by its `trap` on three *failed* installs, which is the case it exists for.
+
+It also showed that a fresh `/data` really is `unlabeled_t` until
+relabelled, which the SELinux fix had been written on reasoning alone.
+
+### Not covered
+
+Credential rotation was written from this run but only partly exercised:
+the auth file's reversibility, the API's refusal of basic auth, and
+`podman login`'s safe failure were confirmed; the UI steps and the
+two-robot least-privilege layout were not. No cluster has been installed
+from any of these mirrors.
+
 ## Bugs this testing found and fixed
 
 Twenty-one. Every one passed local syntax and logic review and still failed
