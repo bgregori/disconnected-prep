@@ -42,6 +42,11 @@ run oc adm release extract \
 
 run chmod +x "${BIN}/openshift-install-fips"
 
+# Fourth binary this workflow extracts and runs, and fapolicyd denies it for
+# the same reason as the other three: it came out of an archive, not an RPM.
+run sudo restorecon -v "${BIN}/openshift-install-fips" || true
+fapolicyd_trust "${BIN}/openshift-install-fips"
+
 echo >&2
 ok "Extracted: ${BIN}/openshift-install-fips"
 run "${BIN}/openshift-install-fips" version

@@ -37,8 +37,26 @@ oc adm release extract \
   --idms-file="${IDMS}"
 
 chmod +x ${OCP_AIRGAP_ROOT}/binaries/openshift-install-fips
+
+# Extracted from an archive, so fapolicyd denies it like every other binary
+# this workflow unpacks -- "Operation not permitted", even as root
+sudo restorecon -v ${OCP_AIRGAP_ROOT}/binaries/openshift-install-fips
+sudo fapolicyd-cli --file add ${OCP_AIRGAP_ROOT}/binaries/openshift-install-fips
+sudo fapolicyd-cli --update
+
 ${OCP_AIRGAP_ROOT}/binaries/openshift-install-fips version
 ```
+
+> ⚠️ **STIG Every binary this workflow unpacks needs allowlisting.** That is
+> now four: `oc` and `oc-mirror` in chapter 01, `mirror-registry` in
+> chapter 05, and this one. The rule is the archive, not the directory —
+> anything that arrives outside an RPM is untrusted, and the denial reads
+> `Operation not permitted` with nothing naming fapolicyd.
+>
+> 📌 **Handoff** The install host needs the same treatment.
+> `openshift-install-fips` travels in the bundle and runs on whichever
+> machine generates the agent ISO; a hardened host there will refuse it
+> until it is trusted.
 
 Two things about this command.
 
