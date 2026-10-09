@@ -26,7 +26,12 @@ use_oc_mirror_umask
 run mkdir -p "${MIRROR_OUT}" "${CACHE_DIR}" "${EXPORTS_DIR}/${EXPORT_TAG}"
 use_mirror_tmpdir
 
-if [[ -d "${MIRROR_OUT}/working-dir/.history" ]]; then
+# Judge by the history FILES, not by the directory. A dry run creates
+# working-dir/ and an empty .history/ without recording anything, so a
+# directory test reports the first real mirror as DIFFERENTIAL when it is a
+# full one -- and anyone checking that their delta setup works is misled by
+# exactly the line meant to tell them.
+if compgen -G "${MIRROR_OUT}/working-dir/.history/.history-*" >/dev/null; then
   info "Incremental history found -- this run produces a DIFFERENTIAL archive."
 else
   info "No history in ${MIRROR_OUT} -- this run produces a FULL archive."
@@ -60,6 +65,10 @@ run oc-mirror --v2 \
 info "Staging archives to ${EXPORTS_DIR}/${EXPORT_TAG}/"
 run cp -v "${MIRROR_OUT}"/mirror_*.tar "${EXPORTS_DIR}/${EXPORT_TAG}/"
 run cp -v "${IMAGESET_CONFIG}" "${EXPORTS_DIR}/${EXPORT_TAG}/imageset-config.yaml"
+# The config is created under the STIG umask, so the copy lands 0600 and the
+# receiving side -- a different team, often a different account -- cannot
+# read the record of what the archive contains.
+run chmod 0644 "${EXPORTS_DIR}/${EXPORT_TAG}/imageset-config.yaml"
 
 ok "Mirror complete."
 du -sh "${EXPORTS_DIR}/${EXPORT_TAG}" >&2

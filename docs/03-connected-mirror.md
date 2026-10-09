@@ -114,6 +114,11 @@ cheap.
 Point it at a fresh dated directory each run and there is no history, so
 every run produces a **full** archive.
 
+> A dry run creates the workspace, including an empty `.history/`, without
+> recording anything in it. The first real mirror afterwards is still a full
+> archive — judge by the files inside `.history/`, not by the directory
+> existing.
+
 So: one persistent `MIRROR_OUT`, and dated copies staged out of it for
 transport.
 
