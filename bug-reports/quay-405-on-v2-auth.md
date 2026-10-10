@@ -58,6 +58,31 @@ Across one full push:
 Reproduced on three separate freshly provisioned environments, always on
 the first push, always on the same class of image.
 
+## A fourth run contradicts the namespace correlation
+
+A later push on a fresh build produced `405`s with these scopes:
+
+```
+ 10  scope=repository:openshift/release:pull,push
+  2  scope=repository:compliance/openshift-compliance-content-rhel8:pull,push
+  2  scope=repository:rhel9/support-tools:pull,push
+```
+
+`openshift/release` is created early and used by all 192 release images,
+which all succeeded. So the failures are **not** confined to namespaces
+being created for the first time, and the earlier correlation was an
+artefact of which images happened to be in flight. What survives is:
+
+- the endpoint is always `GET /v2/auth`, always `pull,push` scope
+- the proportion is small and the same requests succeed either side
+- `oc-mirror` sometimes absorbs it (192/192 release images passed despite
+  10 failures against that namespace) and sometimes surfaces it as a
+  failed image
+- it happens under concurrent push load and not otherwise
+
+That points away from namespace creation and towards the `/v2/` blueprint,
+or that route, being transiently unavailable under load.
+
 ## Not reproducible by
 
 Eight concurrent `GET /v2/auth` requests for a brand-new namespace scope,
