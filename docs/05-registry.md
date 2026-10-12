@@ -50,19 +50,68 @@ sudo fapolicyd-cli --update
 > ⚠️ **STIG** The fapolicyd allowlist is per-host. Doing this on the
 > connected bastion did nothing for this one.
 
-Verify, then run preflight — which checks for `oc` and `oc-mirror` and
-fails without them:
+Verify the tooling runs here — on a hardened host that is a real question,
+not a formality:
 
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
 oc version --client
 ( umask 0022; oc-mirror version --v2 >/dev/null && echo "oc-mirror OK" )
-
-ROLE=disconnected ./scripts/00-preflight.sh
 ```
 
 `podman` must already be present; `mirror-registry` requires it and does
-not install it. The next section queries it before Quay exists.
+not install it.
+
+### Preflight on this host, by hand
+
+[01-prerequisites.md](01-prerequisites.md#preflight) checked the connected
+bastion. These are the registry host's own checks, and they belong here
+because most of them are about storage that only exists after the
+transfer. Run them **before** installing Quay — every one of them is
+cheaper to answer now than after a failed install.
+
+```sh
+# ===== RUN ON: REGISTRY HOST =====
+: "${OCP_AIRGAP_ROOT:?set it first -- see 01-prerequisites.md}"
+
+# --- where Quay's images will actually land -------------------------------
+# NOT --quayRoot. This is the number that matters: budget 200 GB.
+podman info --format '{{.Store.GraphRoot}}'
+df -h "$(podman info --format '{{.Store.GraphRoot}}')"
+
+# On the ROOT filesystem? Relocate it before installing -- filling / takes
+# the host down, not just the registry. See the callout above.
+findmnt -n -o TARGET --target "$(podman info --format '{{.Store.GraphRoot}}')"
+
+# Relocated? Then it must be labelled for containers, not default_t.
+ls -Zd "$(podman info --format '{{.Store.GraphRoot}}')"
+
+# --- the rest of the storage ----------------------------------------------
+df -h /opt/quay                          # quayRoot: megabytes, needs to exist
+df -h ${OCP_AIRGAP_ROOT}/imports         # the transferred archive: 100 GB+
+df -h ${OCP_AIRGAP_ROOT}/cache           # oc-mirror cache for the push: 150 GB+
+
+# --- oc-mirror's local storage port ---------------------------------------
+ss -ltn | grep -q ':55000 ' && echo "PORT 55000 IN USE" || echo "port 55000 free"
+
+# --- temp space, on THIS host ---------------------------------------------
+echo "TMPDIR=${TMPDIR:-unset}"
+df -h "${TMPDIR:-/var/tmp}"
+mkdir -p "${TMPDIR:-/tmp}"
+probe="${TMPDIR:-/tmp}/.probe.$$"
+printf '#!/bin/sh\nexit 0\n' > "${probe}" && chmod 0700 "${probe}"
+"${probe}" && echo "exec OK" || echo "EXEC BLOCKED -- noexec mount, or fapolicyd"
+rm -f "${probe}"
+```
+
+What each answer has to be: the graphroot on a volume with 200 GB free and
+**not** on `/`; `ls -Zd` showing a `container_*` type rather than
+`default_t` or `unlabeled_t`; port 55000 free; and `exec OK` from the temp
+probe. The exec probe matters as much here as on the bastion — the push
+unpacks and runs a helper binary from `TMPDIR`.
+
+> Using the scripts? `ROLE=disconnected ./scripts/00-preflight.sh` runs all
+> of the above and exits non-zero on anything fatal.
 
 ---
 

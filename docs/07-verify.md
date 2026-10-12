@@ -110,6 +110,59 @@ If it succeeds and reports your expected version, the hard part is done.
 
 The script exits non-zero on any failure.
 
+### By hand
+
+The same six, in order. This is the gate before handoff, so run all of
+them rather than the ones that look likely.
+
+```sh
+# ===== RUN ON: REGISTRY HOST =====
+: "${OCP_AIRGAP_ROOT:?set it first -- see 01-prerequisites.md}"
+REG=registry.airgap.local:8443
+TAG=2026-10-02_initial
+CR=${OCP_AIRGAP_ROOT}/imports/${TAG}/working-dir/cluster-resources
+AUTH=${OCP_AIRGAP_ROOT}/binaries/mirror-pull-secret.json
+VER=$(awk '/minVersion:/{print $2; exit}' ${OCP_AIRGAP_ROOT}/imports/${TAG}/imageset-config.yaml)
+
+# 1 -- registry API over TLS, no -k. 401 is the pass.
+curl -sI "https://${REG}/v2/" | head -1
+
+# 2 -- release payload present and readable from the mirror
+oc adm release info -a "${AUTH}" \
+  "${REG}/openshift/release-images:${VER}-x86_64" -o json \
+  | python3 -c 'import json,sys; print(len(json.load(sys.stdin)["references"]["spec"]["tags"]), "component images")'
+
+# 3 -- the installer binary matches what you mirrored
+${OCP_AIRGAP_ROOT}/binaries/openshift-install-fips version | head -1
+echo "expected ${VER}"
+
+# 4 -- the manifests the cluster needs
+ls "${CR}"
+test -f "${CR}/idms-oc-mirror.yaml"        && echo "IDMS ok"
+ls "${CR}"/cs-*.yaml                        2>/dev/null || echo "no CatalogSources (expected if you mirrored no operators)"
+ls "${CR}"/signature-configmap.*            2>/dev/null || echo "no signature ConfigMap -- signature verification unavailable"
+
+# 5 -- each catalog image is actually servable
+#     --filter-by-os is required: catalog images are multi-arch, and without
+#     it oc image info errors out in a way that looks like a missing image
+for f in "${CR}"/cs-*.yaml; do
+  img=$(awk '/^[[:space:]]*image:/{print $2; exit}' "$f")
+  oc image info --registry-config "${AUTH}" --filter-by-os linux/amd64 "$img" >/dev/null \
+    && echo "pullable: $img" || echo "NOT PULLABLE: $img"
+done
+
+# 6 -- the operators you asked for, as a named list to confirm post-install
+grep -E '^\s+- name: .*operator' ${OCP_AIRGAP_ROOT}/imports/${TAG}/imageset-config.yaml
+```
+
+Check 6 is a list to carry forward, not a pass/fail: nothing on this host
+can confirm an operator is installable until a cluster exists. After the
+install, `oc get packagemanifests -n openshift-marketplace` is where each
+name has to appear.
+
+A failure in 1–5 means **do not hand off**. See
+[troubleshooting.md](troubleshooting.md).
+
 ---
 
 ## Checks worth doing by hand
