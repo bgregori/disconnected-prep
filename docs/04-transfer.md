@@ -17,12 +17,62 @@ into the registry push, often the next day.
 TAG=2026-10-02_initial
 SRC=${OCP_AIRGAP_ROOT}/exports/${TAG}
 
-# first transfer only: carry the tooling and these procedures too
+# first transfer only: the tooling. Later deltas carry archives only.
 mkdir -p "${SRC}/binaries"
 cp ${OCP_AIRGAP_ROOT}/binaries/openshift-client-linux.tar.gz \
    ${OCP_AIRGAP_ROOT}/binaries/oc-mirror.rhel9.tar.gz \
    ${OCP_AIRGAP_ROOT}/binaries/mirror-registry.tar.gz "${SRC}/binaries/"
+```
 
+### Carry the procedures too, or not
+
+The far side needs the three binaries above either way. Whether it also
+gets *this repository* is a policy question, not a technical one, and both
+answers are workable.
+
+**If you can carry it** — add the repo to the bundle. The registry host
+then has the chapters and the scripts locally, and
+[05-registry.md](05-registry.md) can be followed from the host itself:
+
+```sh
+# ===== RUN ON: CONNECTED BASTION =====
+REPO=~/disconnected-prep          # wherever this repository is checked out
+
+tar -cf "${SRC}/disconnected-prep-repo.tar" \
+    --exclude='.git' \
+    --exclude='config/prep.env' \
+    -C "$(dirname "${REPO}")" "$(basename "${REPO}")"
+```
+
+Two things about that command. `--exclude` must come **before** the path
+arguments: GNU tar on RHEL 9 treats options after a non-option argument as
+positional and fails with `--exclude has no effect`, exiting non-zero —
+BSD tar is lenient, so this only breaks on the platform that matters.
+And `config/prep.env` is excluded deliberately: it holds `QUAY_PASSWORD`,
+and the registry host needs its own paths anyway. Write a fresh one there.
+
+On arrival, unpack it before anything else:
+
+```sh
+# ===== RUN ON: REGISTRY HOST =====
+tar -xf ${OCP_AIRGAP_ROOT}/imports/${TAG}/disconnected-prep-repo.tar -C ~
+```
+
+**If you cannot carry it** — many enclaves will not accept a tarball of
+anything that is not reviewed content, and this repo is explicitly written
+so you do not need it. Omit the step. The consequence is only that the
+chapters live somewhere else: a printed copy, a PDF on an approved laptop,
+or a controlled copy already inside the enclave. Every command in
+[05-registry.md](05-registry.md) onward is written out in full for exactly
+this case, and `config/prep.env` is typed rather than copied regardless.
+
+What you lose without the repo is the `scripts/` convenience and nothing
+else. The by-hand path is the whole procedure, not a summary of it.
+
+### Finish the bundle
+
+```sh
+# ===== RUN ON: CONNECTED BASTION =====
 # checksum everything -- do this before the media leaves the host
 cd "${SRC}"
 find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
@@ -30,6 +80,9 @@ find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA25
 # copy to the medium (no -z: the content is already compressed)
 cp -a "${SRC}" /path/to/removable/media/
 ```
+
+Checksum **after** deciding about the repo tarball, so the manifest covers
+whatever is actually in the bundle.
 
 On arrival:
 
