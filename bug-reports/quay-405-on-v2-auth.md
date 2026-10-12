@@ -83,6 +83,25 @@ artefact of which images happened to be in flight. What survives is:
 That points away from namespace creation and towards the `/v2/` blueprint,
 or that route, being transiently unavailable under load.
 
+## Serialising the push eliminates it
+
+A fifth run, on a fresh environment, pushed the identical 203-image
+payload with `--parallel-images 1 --parallel-layers 1`:
+
+```
+✓ 192 / 192 release images mirrored successfully
+✓ 8 / 8 operator images mirrored successfully
+✓ 3 / 3 additional images mirrored successfully
+mirror time: 22m52s
+```
+
+**Zero `405`s**, against 2–10 on every one of the four concurrent pushes
+before it. Wall clock went from ~21m to 22m53s — about 8%.
+
+That is the strongest evidence in this report. Concurrency is necessary to
+trigger the fault, and no other variable changed: same payload, same
+oc-mirror build, same Quay version, same host shape, same hardening.
+
 ## Not reproducible by
 
 Eight concurrent `GET /v2/auth` requests for a brand-new namespace scope,

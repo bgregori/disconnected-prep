@@ -66,11 +66,15 @@ umask 0022 && oc-mirror --v2 \
   --from file://${OCP_AIRGAP_ROOT}/imports/2026-10-02_initial \
   --cache-dir ./cache \
   --authfile binaries/mirror-pull-secret.json \
+  --parallel-images 1 --parallel-layers 1 \
   docker://registry.airgap.local:8443
 ```
 
 This is **disk-to-mirror (d2m)**. Points to note:
 
+- **`--parallel-images 1 --parallel-layers 1`** is what makes this finish
+  on the first attempt. See below — concurrent pushes produce `405` token
+  failures on this registry, every time, for an 8% saving in wall clock.
 - **`--from` takes an absolute path.** A relative path is a common and
   confusingly-reported failure.
 - **`--config` is still required.** It selects which subset of the archive
@@ -116,9 +120,25 @@ sed 's/sha256:[0-9a-f]*/sha256:…/g' \
 
 One line there means one failure, and everything else was collateral.
 
-**The `405` namespace race, specifically.** The first push of a
-multi-architecture image into a namespace that does not exist yet fails
-with
+**Push serially, and the `405` does not happen.** This is the one setting
+worth getting right before the first push rather than after:
+
+| `--parallel-images` / `--parallel-layers` | Result |
+|---|---|
+| `4` / `5` | `405` token failures on **every** push attempted, four for four |
+| `1` / `1` | **zero** `405`s, clean on the first attempt |
+
+Measured on a 2 vCPU registry host with 203 images and a 29 GB archive:
+serial took **22m53s** against roughly **21m** concurrent. Eight percent,
+for a push that finishes instead of one that needs a retry costing ten
+minutes of re-extraction. `config/prep.env` now ships `1`/`1`, and the
+commands below pass them explicitly.
+
+Raise them only if you have a bigger registry host and have confirmed a
+clean first push at the higher value.
+
+**What the failure looks like if you do run concurrently.** A push into a
+namespace that does not yet exist fails with
 
 ```
 trying to reuse blob ... at destination: Requesting bearer token:
