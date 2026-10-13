@@ -268,6 +268,34 @@ read -rsp 'Quay init password (8 characters or more): ' QUAY_PASSWORD; echo
   --initUser init \
   --initPassword "${QUAY_PASSWORD}"
 
+> **Using a certificate you already have?** The command above lets
+> `mirror-registry` generate a self-signed CA, which is the right default
+> when nothing else in the environment has one. If your environment already
+> has a CA — so the registry, the cluster and everything else share a single
+> root — add `--sslCert` and `--sslKey`:
+>
+> ```sh
+> # ===== RUN ON: REGISTRY HOST =====
+> ./mirror-registry install \
+>   --quayHostname registry.airgap.local \
+>   --quayRoot /opt/quay \
+>   --initUser init \
+>   --initPassword "${QUAY_PASSWORD}" \
+>   --sslCert /path/to/registry.crt \
+>   --sslKey  /path/to/registry.key
+> ```
+>
+> The certificate **must carry the registry FQDN as a SAN**.
+> `mirror-registry` does not check, and a mismatch does not surface here —
+> it surfaces during cluster bootstrap as an image pull failure that says
+> nothing about certificate names.
+>
+> With the script, set `REGISTRY_TLS_CERT`, `REGISTRY_TLS_KEY` and
+> `REGISTRY_CA_PEM` in `config/prep.env`. `50-install-registry.sh` checks
+> the pair matches, the SAN covers `REGISTRY_HOST`, and the certificate
+> verifies against the CA you named — before it installs anything.
+
+
 # Put it back immediately, and prove it
 sed -i '/^umask 0022$/d' ~/.bashrc
 sudo find /home -maxdepth 2 -type f -name ".[^.]*" \
@@ -498,13 +526,30 @@ on a healthy instance — judge by `/health/instance`, not by the log.
 
 ## Trust the CA
 
-`mirror-registry` generates a self-signed CA. `oc-mirror` reads TLS trust
-from the **host trust store** — there is no per-command certificate flag.
+`oc-mirror` reads TLS trust from the **host trust store** — there is no
+per-command certificate flag. So whichever CA signs the registry
+certificate has to be an anchor on this host.
+
+If you let `mirror-registry` generate a self-signed CA, that is the file it
+wrote:
 
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
 sudo cp -v /opt/quay/quay-rootCA/rootCA.pem \
            /etc/pki/ca-trust/source/anchors/quay-rootCA.pem
+sudo update-ca-trust
+```
+
+If you supplied your own certificate, use **the CA that signed it** instead
+— and if that CA is already an anchor on this host, this step is already
+done. Copying `rootCA.pem` in that case installs a CA that signed nothing
+the registry is serving, which does not fail here; it fails later, in a way
+that points at the wrong thing.
+
+```sh
+# ===== RUN ON: REGISTRY HOST =====
+sudo cp -v /path/to/root-ca.pem \
+           /etc/pki/ca-trust/source/anchors/registry-ca.pem
 sudo update-ca-trust
 ```
 
@@ -541,7 +586,8 @@ have concealed — useful while waiting for Quay to boot, wrong here.
 > harder. In an accredited environment, disabled TLS verification in a build
 > transcript is itself a finding.
 
-📌 **Handoff** `rootCA.pem` is needed by the install side for
+📌 **Handoff** The registry CA — `rootCA.pem` when self-signed, otherwise
+whatever `REGISTRY_CA_PEM` names — is needed by the install side for
 `additionalTrustBundle` in `install-config.yaml`. `90-handoff.sh` collects
 it.
 

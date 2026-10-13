@@ -22,6 +22,67 @@ require_cmds tar sudo base64
 
 BIN="${OCP_AIRGAP_ROOT}/binaries"
 
+# --- TLS: self-signed by default, or a certificate you supply -------------
+#
+# Validated here rather than at the install call, because every problem
+# below is cheaper to hear about now than after Quay is half-installed.
+REGISTRY_TLS_CERT="${REGISTRY_TLS_CERT:-}"
+REGISTRY_TLS_KEY="${REGISTRY_TLS_KEY:-}"
+REGISTRY_CA_PEM="${REGISTRY_CA_PEM:-}"
+SSL_ARGS=()
+
+if [[ -n "${REGISTRY_TLS_CERT}" || -n "${REGISTRY_TLS_KEY}" ]]; then
+  # One without the other is always a mistake, and mirror-registry would
+  # take the cert and generate a key that does not match it.
+  [[ -n "${REGISTRY_TLS_CERT}" && -n "${REGISTRY_TLS_KEY}" ]] ||
+    die "Set BOTH REGISTRY_TLS_CERT and REGISTRY_TLS_KEY, or neither."
+  [[ -r "${REGISTRY_TLS_CERT}" ]] || die "Cannot read REGISTRY_TLS_CERT: ${REGISTRY_TLS_CERT}"
+  [[ -r "${REGISTRY_TLS_KEY}"  ]] || die "Cannot read REGISTRY_TLS_KEY: ${REGISTRY_TLS_KEY}"
+
+  # A cert and key that do not belong together produce a TLS handshake
+  # failure much later, during the push, with no mention of either file.
+  if command -v openssl >/dev/null 2>&1; then
+    c_mod="$(openssl x509 -noout -pubkey -in "${REGISTRY_TLS_CERT}" 2>/dev/null | openssl md5)"
+    k_mod="$(openssl pkey -pubout -in "${REGISTRY_TLS_KEY}" 2>/dev/null | openssl md5)"
+    [[ -n "${c_mod}" && "${c_mod}" == "${k_mod}" ]] ||
+      die "REGISTRY_TLS_CERT and REGISTRY_TLS_KEY are not a pair."
+
+    # REGISTRY_HOST goes into IDMS and install-config. If it is not a SAN,
+    # the cluster fails to pull during bootstrap with an error that never
+    # mentions certificate names. mirror-registry does not check this.
+    if ! openssl x509 -noout -ext subjectAltName -in "${REGISTRY_TLS_CERT}" 2>/dev/null |
+         grep -qF "DNS:${REGISTRY_HOST}"; then
+      die "REGISTRY_TLS_CERT has no SAN for ${REGISTRY_HOST}. Reissue it with that name."
+    fi
+
+    # Apple rejects server certificates valid for more than 398 days, so a
+    # longer one works from Linux and fails in a browser. Warn rather than
+    # fail: nothing in this workflow needs a browser.
+    nb="$(openssl x509 -noout -startdate -in "${REGISTRY_TLS_CERT}" | cut -d= -f2)"
+    na="$(openssl x509 -noout -enddate   -in "${REGISTRY_TLS_CERT}" | cut -d= -f2)"
+    if days=$(( ( $(date -d "${na}" +%s) - $(date -d "${nb}" +%s) ) / 86400 )) 2>/dev/null; then
+      (( days <= 398 )) || warn "Certificate is valid for ${days} days; browsers reject over 398."
+    fi
+  fi
+
+  [[ -n "${REGISTRY_CA_PEM}" ]] ||
+    die "REGISTRY_CA_PEM must name the CA that signed REGISTRY_TLS_CERT."
+  [[ -r "${REGISTRY_CA_PEM}" ]] || die "Cannot read REGISTRY_CA_PEM: ${REGISTRY_CA_PEM}"
+
+  # Supplying a cert the named CA did not sign leaves the cluster trusting
+  # the wrong root -- the one failure this whole block exists to prevent.
+  if command -v openssl >/dev/null 2>&1; then
+    openssl verify -CAfile "${REGISTRY_CA_PEM}" "${REGISTRY_TLS_CERT}" >/dev/null 2>&1 ||
+      die "REGISTRY_TLS_CERT does not verify against REGISTRY_CA_PEM."
+  fi
+
+  SSL_ARGS=(--sslCert "${REGISTRY_TLS_CERT}" --sslKey "${REGISTRY_TLS_KEY}")
+  info "Using the supplied certificate for ${REGISTRY_HOST}"
+  info "Trust anchor: ${REGISTRY_CA_PEM}"
+else
+  info "No REGISTRY_TLS_CERT set; mirror-registry will generate a self-signed CA"
+fi
+
 # Image data goes to podman's volume store, not to --quayRoot (which holds
 # only config and certs). Check the filesystem that will actually fill up.
 if command -v podman >/dev/null 2>&1; then
@@ -156,12 +217,13 @@ printf '%s\n' "${UMASK_LINE}" >> "${HOME}/.bashrc"
 # password. The transcript is accreditation evidence -- it must not contain
 # a credential. (ps still sees it for the duration; mirror-registry has no
 # stdin option for the password.)
-info "+ ${BIN}/mirror-registry install --quayHostname ${REGISTRY_HOST} --quayRoot ${QUAY_ROOT} --initUser ${QUAY_USER} --initPassword <redacted>"
+info "+ ${BIN}/mirror-registry install --quayHostname ${REGISTRY_HOST} --quayRoot ${QUAY_ROOT} --initUser ${QUAY_USER} --initPassword <redacted>${SSL_ARGS[*]:+ ${SSL_ARGS[*]}}"
 "${BIN}/mirror-registry" install \
   --quayHostname "${REGISTRY_HOST}" \
   --quayRoot "${QUAY_ROOT}" \
   --initUser "${QUAY_USER}" \
-  --initPassword "${QUAY_PASSWORD}"
+  --initPassword "${QUAY_PASSWORD}" \
+  ${SSL_ARGS[@]+"${SSL_ARGS[@]}"}
 
 restore_host
 trap - EXIT
@@ -182,10 +244,13 @@ run systemctl --user restart quay-app.service || warn "Could not restart quay-ap
 
 # --- CA trust --------------------------------------------------------------
 
-CA="${QUAY_ROOT}/quay-rootCA/rootCA.pem"
+# Whichever CA actually signs what the registry serves. With a supplied
+# certificate that is REGISTRY_CA_PEM; otherwise it is the one
+# mirror-registry just generated.
+CA="${REGISTRY_CA_PEM:-${QUAY_ROOT}/quay-rootCA/rootCA.pem}"
 [[ -f "${CA}" ]] || die "Expected CA at ${CA} but it is missing."
 
-info "Adding the Quay CA to the system trust store"
+info "Adding the registry CA to the system trust store"
 # oc-mirror reads certificate trust from the host store, not from a flag.
 run sudo cp -v "${CA}" /etc/pki/ca-trust/source/anchors/quay-rootCA.pem
 run sudo update-ca-trust

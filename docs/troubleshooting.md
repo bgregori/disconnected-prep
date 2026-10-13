@@ -204,6 +204,11 @@ sudo update-ca-trust
 curl -I https://registry.airgap.local:8443/v2/      # must work without -k
 ```
 
+If you installed with `--sslCert`, copy **the CA that signed it** rather
+than `rootCA.pem` — on a BYO install that file is either absent or signed
+nothing the registry is serving, so copying it leaves the error unchanged
+and sends you looking in the wrong place.
+
 Avoid `--dest-tls-verify=false`; it defers the problem to the cluster.
 
 ### `unauthorized: access to the requested resource is not authorized`

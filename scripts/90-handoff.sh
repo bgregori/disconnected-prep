@@ -18,7 +18,13 @@ run mkdir -p "${OUT}/cluster-resources" "${OUT}/bin" "${OUT}/certs"
 
 info "Collecting artifacts"
 run cp -r "${CR}/." "${OUT}/cluster-resources/"
-run cp "${QUAY_ROOT}/quay-rootCA/rootCA.pem" "${OUT}/certs/"
+# The CA that actually signs the registry certificate: REGISTRY_CA_PEM when
+# one was supplied to 50-install-registry.sh, otherwise the self-signed one
+# mirror-registry generated. Shipping the wrong one hands the cluster a root
+# that did not sign what it will be pulling from.
+REGISTRY_CA_PEM="${REGISTRY_CA_PEM:-${QUAY_ROOT}/quay-rootCA/rootCA.pem}"
+[[ -r "${REGISTRY_CA_PEM}" ]] || die "Cannot read the registry CA: ${REGISTRY_CA_PEM}"
+run cp "${REGISTRY_CA_PEM}" "${OUT}/certs/rootCA.pem"
 run cp "${MIRROR_PULL_SECRET}" "${OUT}/pull-secret.json"
 run chmod 600 "${OUT}/pull-secret.json"
 # openshift-install-fips is extracted into binaries/; oc is normally on PATH
@@ -160,9 +166,9 @@ PY
 {
   echo ""
   echo "# --- additionalTrustBundle ---"
-  echo "# The Quay CA. Required so the cluster trusts the mirror registry."
+  echo "# The registry CA. Required so the cluster trusts the mirror registry."
   echo "additionalTrustBundle: |"
-  sed 's/^/  /' "${QUAY_ROOT}/quay-rootCA/rootCA.pem"
+  sed 's/^/  /' "${REGISTRY_CA_PEM}"
   echo "additionalTrustBundlePolicy: Always"
   echo ""
   echo "# --- pullSecret ---"
@@ -192,7 +198,7 @@ Produced by \`disconnected-prep\` on $(date -u +%Y-%m-%dT%H:%M:%SZ) by ${USER}@$
 |---|---|
 | \`install-config-fragment.yaml\` | Paste \`imageDigestSources\` + \`additionalTrustBundle\` into install-config.yaml |
 | \`pull-secret.json\` | The \`pullSecret\` value for install-config.yaml |
-| \`certs/rootCA.pem\` | Quay CA, also needed by any host pulling from the mirror |
+| \`certs/rootCA.pem\` | The CA signing the registry certificate, also needed by any host pulling from the mirror |
 | \`cluster-resources/\` | Apply **after** install completes |
 | \`bin/openshift-install-fips\` | Use this, not the generic installer, when \`fips: true\` |
 | \`bin/oc\` | Version-matched client |
