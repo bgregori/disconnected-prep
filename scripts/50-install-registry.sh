@@ -41,9 +41,15 @@ if [[ -n "${REGISTRY_TLS_CERT}" || -n "${REGISTRY_TLS_KEY}" ]]; then
 
   # A cert and key that do not belong together produce a TLS handshake
   # failure much later, during the push, with no mention of either file.
+  #
+  # sha256, not md5. The usual idiom for this comparison uses md5, which is
+  # unavailable under FIPS -- `openssl md5` fails with "digital envelope
+  # routines: unsupported" and both sides compare equal-and-empty. On the
+  # FIPS hosts this repository targets, md5 would turn a correct pair into
+  # a confident "not a pair".
   if command -v openssl >/dev/null 2>&1; then
-    c_mod="$(openssl x509 -noout -pubkey -in "${REGISTRY_TLS_CERT}" 2>/dev/null | openssl md5)"
-    k_mod="$(openssl pkey -pubout -in "${REGISTRY_TLS_KEY}" 2>/dev/null | openssl md5)"
+    c_mod="$(openssl x509 -noout -pubkey -in "${REGISTRY_TLS_CERT}" 2>/dev/null | openssl sha256)"
+    k_mod="$(openssl pkey -pubout -in "${REGISTRY_TLS_KEY}" 2>/dev/null | openssl sha256)"
     [[ -n "${c_mod}" && "${c_mod}" == "${k_mod}" ]] ||
       die "REGISTRY_TLS_CERT and REGISTRY_TLS_KEY are not a pair."
 
