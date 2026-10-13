@@ -1,3 +1,9 @@
+---
+title: "Capacity planning for the long term"
+description: >-
+  Sizing a disconnected mirror registry for year three: nothing expires, nothing is evicted, and nothing shrinks on its own.
+---
+
 # Capacity planning for the long term
 
 Sizing for day one is [01-prerequisites.md](01-prerequisites.md). This

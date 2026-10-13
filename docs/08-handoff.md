@@ -1,3 +1,9 @@
+---
+title: "Handoff"
+description: >-
+  Producing the bundle the install side consumes: manifests, CA bundle, pull secret, and ready-to-paste install-config.yaml fragments.
+---
+
 # Handoff
 
 The boundary. Prep produces a bundle; the install side consumes it.
@@ -278,7 +284,7 @@ Write these down rather than letting them be discovered.
 
 ## Handing over
 
-Walk through [checklists/handoff-contract.md](../checklists/handoff-contract.md)
+Walk through [checklists/handoff-contract.md](https://github.com/bgregori/disconnected-prep/blob/main/checklists/handoff-contract.md)
 with whoever is doing the install. It is short, and it converts the list
 above into confirmed shared understanding rather than a directory someone
 was emailed.

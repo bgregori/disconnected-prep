@@ -1,3 +1,9 @@
+---
+title: "Appendix: FIPS and STIG on RHEL 9"
+description: >-
+  Reference, not a step: why each hardening workaround in the chapters exists, and what fails confusingly without it.
+---
+
 # Appendix — FIPS and STIG on the RHEL 9 hosts
 
 **This is reference, not a step. Nothing here needs to be run on its own.**

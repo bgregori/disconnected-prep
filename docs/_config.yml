@@ -1,0 +1,94 @@
+---
+title: disconnected-prep
+tagline: >-
+  Getting OpenShift content across an air gap, on FIPS-enabled, STIG-hardened RHEL 9.
+description: >-
+  A tested, self-contained procedure for mirroring OpenShift into a disconnected
+  environment: content planning, oc-mirror v2, transfer, mirror registry, verification,
+  and a handoff bundle for the install team.
+
+# Project pages are served from https://<user>.github.io/<repo>/, so baseurl must match the
+# repository name. Clear both of these if the site ever moves to a custom domain.
+url: https://bgregori.github.io
+baseurl: /disconnected-prep
+
+repo_url: https://github.com/bgregori/disconnected-prep
+repo_blob: https://github.com/bgregori/disconnected-prep/blob/main
+
+markdown: kramdown
+highlighter: rouge
+
+kramdown:
+  input: GFM
+  hard_wrap: false
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    css_class: highlight
+
+# Enabled by default on GitHub Pages; declared so local `jekyll serve` matches.
+plugins:
+  - jekyll-relative-links
+
+relative_links:
+  enabled: true
+  collections: false
+
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default
+
+# Chapter rail, left of the content. `file` is matched against page.name to mark
+# the current page. Order here is the order the chapters are meant to be read in.
+nav:
+  - title: Start
+    items:
+      - title: Overview
+        file: index.md
+        url: /
+  - title: Prepare
+    items:
+      - title: 1 · Prerequisites
+        file: 01-prerequisites.md
+        url: /01-prerequisites.html
+      - title: 2 · Plan your content
+        file: 02-plan-your-content.md
+        url: /02-plan-your-content.html
+      - title: 3 · Mirror to disk
+        file: 03-connected-mirror.md
+        url: /03-connected-mirror.html
+      - title: 4 · Transfer
+        file: 04-transfer.md
+        url: /04-transfer.html
+      - title: 5 · Mirror registry
+        file: 05-registry.md
+        url: /05-registry.html
+      - title: 6 · Push to registry
+        file: 06-push-to-registry.md
+        url: /06-push-to-registry.html
+      - title: 7 · Verify
+        file: 07-verify.md
+        url: /07-verify.html
+      - title: 8 · Handoff
+        file: 08-handoff.md
+        url: /08-handoff.html
+  - title: Keep it running
+    items:
+      - title: 9 · Day-2 deltas
+        file: 09-day2-delta.md
+        url: /09-day2-delta.html
+      - title: 10 · Capacity planning
+        file: 10-capacity-planning.md
+        url: /10-capacity-planning.html
+  - title: Reference
+    items:
+      - title: Troubleshooting
+        file: troubleshooting.md
+        url: /troubleshooting.html
+      - title: FIPS and STIG
+        file: appendix-fips-stig.md
+        url: /appendix-fips-stig.html
+      - title: Bring your own registry
+        file: appendix-byo-registry.md
+        url: /appendix-byo-registry.html

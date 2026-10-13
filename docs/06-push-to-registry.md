@@ -1,3 +1,9 @@
+---
+title: "Push to the registry"
+description: >-
+  Unpacking the transferred archives into Quay and generating the IDMS, ITMS, and CatalogSource manifests for the cluster.
+---
+
 # Push to the registry
 
 On the **registry host**. Unpacks the transferred archives into Quay

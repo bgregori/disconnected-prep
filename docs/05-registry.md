@@ -1,3 +1,9 @@
+---
+title: "Mirror registry"
+description: >-
+  Installing Red Hat mirror-registry (standalone Quay) on the disconnected host, trusting its CA, and writing the auth file used for the push.
+---
+
 # Mirror registry
 
 On the **registry host**. Installs Red Hat `mirror-registry`

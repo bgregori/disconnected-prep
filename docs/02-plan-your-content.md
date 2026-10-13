@@ -1,3 +1,9 @@
+---
+title: "Plan your content"
+description: >-
+  Deciding what goes across the gap, and writing the ImageSetConfiguration that fixes it: release payload, operators, and additional images.
+---
+
 # Plan your content
 
 The most consequential step in prep, and the one most often rushed.
@@ -211,7 +217,7 @@ the composer overwrites it, so put changes you want to keep into
 
 You do not need the composer — it only concatenates fragments. A complete,
 working configuration is short. This is the one actually used for the
-validated run in [VALIDATION.md](../VALIDATION.md), with the operator list
+validated run in [VALIDATION.md](https://github.com/bgregori/disconnected-prep/blob/main/VALIDATION.md), with the operator list
 to edit.
 
 Write it to `${OCP_AIRGAP_ROOT}/config/imageset-config.yaml` — the `config/`

@@ -1,0 +1,771 @@
+/* ==========================================================================
+   disconnected-prep docs
+   Red Hat brand palette (PatternFly values), Red Hat type, light surfaces.
+   The one loud element on the site is the broken red rule: the air gap.
+   ========================================================================== */
+
+:root {
+  /* brand */
+  --rh-red: #ee0000;
+  --rh-red-deep: #a30000;
+  --rh-red-bright: #ff5c5c;
+
+  /* ink + surfaces */
+  --ink: #151515;
+  --ink-soft: #3c3f42;
+  --muted: #6a6e73;
+  --paper: #ffffff;
+  --shell: #f2f2f2;
+  --code-bg: #f5f5f5;
+  --rule: #d2d2d2;
+  --rule-soft: #e8e8e8;
+
+  /* dark surfaces */
+  --night: #151515;
+  --night-lift: #1c1c1c;
+  --night-rule: #3c3f42;
+  --night-text: #d2d2d2;
+  --night-dim: #8a8d90;
+
+  /* interaction */
+  --link: #0053a6;
+  --link-hover: #003d7a;
+  --link-underline: #a6c4e4;
+  --note-bg: #f2f7fd;
+
+  /* type */
+  --font-display: "Red Hat Display", "Segoe UI", system-ui, sans-serif;
+  --font-text: "Red Hat Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "Red Hat Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* box-drawing characters are unreliable in webfonts — diagrams use system mono */
+  --font-mono-safe: ui-monospace, SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", monospace;
+
+  /* wide enough for the chapter rail, the prose column and the page toc */
+  --page-max: 1320px;
+  --radius: 3px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  scroll-padding-top: 5rem;
+  -webkit-text-size-adjust: 100%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}
+
+body {
+  margin: 0;
+  background: var(--shell);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: #ffd7d7; }
+
+:focus-visible {
+  outline: 2px solid var(--rh-red);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.skip {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  background: var(--paper);
+  color: var(--ink);
+  padding: 0.75rem 1rem;
+  font-weight: 700;
+}
+
+.skip:focus { left: 0; }
+
+/* --------------------------------------------------------------- topbar -- */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--night);
+  border-bottom: 1px solid var(--night-rule);
+}
+
+.topbar__inner {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  height: 3.25rem;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.topbar :focus-visible { outline-color: var(--rh-red-bright); }
+
+.mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: #fff;
+  text-decoration: none;
+  font-family: var(--font-mono);
+  font-size: 0.9375rem;
+  white-space: nowrap;
+}
+
+.mark__glyph { width: 20px; height: 20px; flex: none; }
+
+.topnav {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-left: auto;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.topnav::-webkit-scrollbar { display: none; }
+
+.topnav a {
+  position: relative;
+  color: var(--night-text);
+  text-decoration: none;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  white-space: nowrap;
+  padding: 1rem 0;
+}
+
+.topnav a:hover { color: #fff; }
+
+.topnav a[aria-current="page"] {
+  color: #fff;
+  box-shadow: inset 0 -3px 0 var(--rh-red);
+}
+
+.topnav__out { color: var(--night-dim); }
+
+/* ----------------------------------------------------------------- hero -- */
+
+.hero {
+  background: var(--night);
+  color: #fff;
+}
+
+.hero__inner {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 4.25rem 1.5rem 4.5rem;
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 3.5rem;
+  align-items: center;
+}
+
+.hero h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2.125rem, 4.4vw, 3rem);
+  line-height: 1.08;
+  letter-spacing: -0.022em;
+  margin: 0;
+  max-width: 16ch;
+}
+
+.hero__tagline {
+  margin: 1.25rem 0 0;
+  max-width: 46ch;
+  font-size: 1.125rem;
+  line-height: 1.55;
+  color: var(--night-text);
+}
+
+.hero__actions {
+  margin: 2.25rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.7rem 1.35rem;
+  border-radius: var(--radius);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn { transition: none; }
+}
+
+/* #cc0000 rather than the #ee0000 logo red: white on it clears 4.5:1 */
+.btn--primary { background: #cc0000; color: #fff; }
+.btn--primary:hover { background: var(--rh-red-deep); }
+
+.btn--ghost { color: #fff; border-color: #6a6e73; }
+.btn--ghost:hover { border-color: #fff; background: rgba(255, 255, 255, 0.06); }
+
+/* the air gap, drawn: the two hosts and the one thing between them */
+
+.airgap {
+  margin: 0;
+  padding: 1.35rem 1.4rem 1.25rem;
+  background: var(--night-lift);
+  border: 1px solid var(--night-rule);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+}
+
+.airgap__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.875rem;
+}
+
+.airgap__host { color: #fff; font-weight: 500; }
+.airgap__zone { color: var(--night-text); }
+
+.airgap__note {
+  margin: 0.3rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--night-dim);
+}
+
+.airgap__break {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.1rem 0 1.15rem;
+}
+
+.airgap__break span {
+  font-size: 0.75rem;
+  color: var(--rh-red-bright);
+}
+
+.airgap__break i {
+  flex: 1;
+  height: 2px;
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--rh-red) 0 9px,
+    transparent 9px 18px
+  );
+}
+
+/* ----------------------------------------------------------------- page -- */
+
+.page {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 3rem 1.5rem 4rem;
+  display: grid;
+  grid-template-columns: 13.5rem minmax(0, 1fr) 14.5rem;
+  gap: 3rem;
+  align-items: start;
+}
+
+.paper {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 3rem 3.25rem;
+  min-width: 0;
+}
+
+/* ----------------------------------------------------------------- rail -- */
+
+.rail {
+  position: sticky;
+  top: 4.75rem;
+  font-size: 0.875rem;
+}
+
+.rail__head {
+  margin: 1.5rem 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.rail__head:first-child { margin-top: 0; }
+
+.rail__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-left: 1px solid var(--rule);
+}
+
+.rail__list a {
+  display: block;
+  margin-left: -1px;
+  padding: 0.3rem 0 0.3rem 0.85rem;
+  border-left: 2px solid transparent;
+  color: #5c6063; /* darker than --muted: this sits on the shell, not on paper */
+  text-decoration: none;
+  line-height: 1.35;
+}
+
+.rail__list a:hover { color: var(--ink); background: rgba(0, 0, 0, 0.03); }
+
+.rail__list a[aria-current="page"] {
+  color: var(--ink);
+  font-weight: 700;
+  border-left-color: var(--rh-red);
+  background: rgba(238, 0, 0, 0.04);
+}
+
+/* ------------------------------------------------------------------ toc -- */
+
+.toc {
+  position: sticky;
+  top: 4.75rem;
+  font-size: 0.875rem;
+}
+
+.toc[hidden] { display: none; }
+
+/* without JS the rail never appears — don't leave an empty column behind it */
+.page:has(.toc[hidden]) { grid-template-columns: 13.5rem minmax(0, 1fr); }
+
+.toc h2 {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-text);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.toc ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-left: 1px solid var(--rule);
+}
+
+.toc a {
+  display: block;
+  margin-left: -1px;
+  padding: 0.3rem 0 0.3rem 0.85rem;
+  border-left: 2px solid transparent;
+  color: #5c6063;
+  text-decoration: none;
+  line-height: 1.35;
+}
+
+.toc a:hover { color: var(--ink); }
+
+.toc a[aria-current="true"] {
+  color: var(--ink);
+  font-weight: 500;
+  border-left-color: var(--rh-red);
+}
+
+/* ---------------------------------------------------------------- prose -- */
+
+.prose { max-width: 74ch; }
+
+.prose > *:first-child { margin-top: 0; }
+.prose > *:last-child { margin-bottom: 0; }
+
+.prose p { margin: 1.15rem 0; }
+
+.prose > p:first-child {
+  font-size: 1.1875rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.prose h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 2.125rem;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 0 0 1.5rem;
+}
+
+.prose h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.5rem;
+  line-height: 1.25;
+  letter-spacing: -0.012em;
+  margin: 3rem 0 1rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--rule-soft);
+}
+
+.prose h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.1875rem;
+  line-height: 1.3;
+  margin: 2.25rem 0 0.75rem;
+}
+
+.prose h4 {
+  font-family: var(--font-text);
+  font-weight: 700;
+  font-size: 1rem;
+  margin: 1.75rem 0 0.5rem;
+}
+
+.prose a {
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--link-underline);
+}
+
+.prose a:hover {
+  color: var(--link-hover);
+  text-decoration-color: currentColor;
+}
+
+.prose strong { font-weight: 700; }
+
+.prose ul, .prose ol { margin: 1.15rem 0; padding-left: 1.4rem; }
+.prose li { margin: 0.4rem 0; }
+.prose li > ul, .prose li > ol { margin: 0.4rem 0; }
+
+.prose ul { list-style: square; }
+.prose li::marker { color: #b8bbbe; }
+
+/* section dividers reuse the air-gap rule, drawn finer so six of them on one
+   page read as a perforation rather than six red stripes */
+.prose hr {
+  height: 2px;
+  border: 0;
+  margin: 3rem 0;
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--rh-red) 0 3px,
+    transparent 3px 10px
+  );
+}
+
+/* an hr already separates the sections — don't double up with the h2 rule */
+.prose hr + h2 {
+  margin-top: 1.75rem;
+  padding-top: 0;
+  border-top: 0;
+}
+
+/* heading anchors (added by docs.js) */
+.prose .anchor {
+  margin-left: 0.4rem;
+  font-family: var(--font-mono);
+  font-weight: 400;
+  color: var(--rule);
+  text-decoration: none;
+  opacity: 0;
+}
+
+.prose h2:hover .anchor,
+.prose h3:hover .anchor,
+.prose .anchor:focus { opacity: 1; }
+
+.prose .anchor:hover { color: var(--rh-red); }
+
+/* ------------------------------------------------------------ callouts -- */
+
+.prose blockquote {
+  margin: 1.5rem 0;
+  padding: 1rem 1.25rem;
+  background: var(--note-bg);
+  border-left: 3px solid var(--link);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.prose blockquote > *:first-child { margin-top: 0; }
+.prose blockquote > *:last-child { margin-bottom: 0; }
+
+/* the ⚠️ STIG callouts carry a hardening warning, not an aside, and the
+   📌 Handoff ones are a note to a different reader entirely — mark both */
+.prose blockquote.stig {
+  background: #fdf7f0;
+  border-left-color: #c46100;
+}
+
+.prose blockquote.handoff {
+  background: #f3faf7;
+  border-left-color: #1f7a63;
+}
+
+/* ------------------------------------------- host badges (where to run) -- */
+
+.host {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: nowrap;
+  padding: 0.05rem 0.5rem;
+  border: 1px solid;
+  border-radius: 999px;
+}
+
+.host--connected { color: #0053a6; border-color: var(--link-underline); background: var(--note-bg); }
+.host--registry  { color: var(--rh-red-deep); border-color: #f0b8b8; background: #fdf2f2; }
+.host--both      { color: #4f5255; border-color: var(--rule); background: var(--shell); }
+
+/* -------------------------------------------------------------- tables -- */
+
+.table-wrap {
+  margin: 1.75rem 0;
+  overflow-x: auto;
+}
+
+.prose table {
+  width: 100%;
+  min-width: 32rem;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.table-wrap table { margin: 0; }
+
+.prose th {
+  text-align: left;
+  vertical-align: bottom;
+  font-weight: 700;
+  background: var(--shell);
+  border-bottom: 2px solid var(--ink);
+  padding: 0.6rem 0.8rem;
+}
+
+.prose td {
+  vertical-align: top;
+  padding: 0.7rem 0.8rem;
+  border-bottom: 1px solid var(--rule-soft);
+  line-height: 1.55;
+}
+
+.prose tbody tr:last-child td { border-bottom: 1px solid var(--rule); }
+
+.prose th code, .prose td code { font-size: 0.8125rem; }
+
+/* the chapter index: a narrow number column reads as a sequence, not as data */
+.prose table.chapters { min-width: 34rem; }
+
+.prose table.chapters td:first-child,
+.prose table.chapters th:first-child {
+  width: 2.5rem;
+  font-family: var(--font-mono);
+  color: var(--muted);
+}
+
+/* the two-column "what it covers" table is a definition list in disguise */
+.prose table.pairs th { display: none; }
+.prose table.pairs td:first-child { width: 11rem; }
+
+/* ---------------------------------------------------------------- code -- */
+
+.prose code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  color: var(--rh-red-deep);
+  background: #f0f0f0;
+  border-radius: var(--radius);
+  padding: 0.12em 0.32em;
+}
+
+.prose a code { color: inherit; }
+
+.prose .highlighter-rouge { margin: 1.5rem 0; }
+.prose .highlight { background: none; margin: 0; }
+
+.prose pre {
+  margin: 1.5rem 0;
+  padding: 1rem 1.15rem;
+  background: var(--code-bg);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.65;
+  color: var(--ink);
+  tab-size: 2;
+}
+
+.prose .highlighter-rouge pre { margin: 0; }
+
+.prose pre code {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: inherit;
+}
+
+/* every block opens with `# ===== RUN ON: ... =====`; docs.js tags the block so
+   the host marker keeps the weight it has in a terminal */
+.prose pre.runon .c1:first-child,
+.prose pre.runon .c:first-child { color: var(--rh-red-deep); font-style: normal; font-weight: 500; }
+
+/* ASCII diagrams: system mono keeps box-drawing characters aligned */
+.diagram pre,
+pre.diagram {
+  font-family: var(--font-mono-safe);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+/* Rouge — light syntax theme tuned for bash and yaml on #f5f5f5 */
+.highlight .c, .highlight .c1, .highlight .cm, .highlight .cs,
+.highlight .cd { color: #5a5e62; font-style: italic; }
+.highlight .k, .highlight .kc, .highlight .kd, .highlight .kn,
+.highlight .kp, .highlight .kr, .highlight .kt { color: #a30000; }
+.highlight .s, .highlight .s1, .highlight .s2, .highlight .sb,
+.highlight .sc, .highlight .sd, .highlight .se, .highlight .sh,
+.highlight .si, .highlight .sx, .highlight .sr { color: #0f612c; }
+.highlight .m, .highlight .mf, .highlight .mh, .highlight .mi,
+.highlight .mo, .highlight .il { color: #8f4700; }
+.highlight .nb, .highlight .bp, .highlight .nf, .highlight .nx { color: #0053a6; }
+.highlight .nv, .highlight .vc, .highlight .vg, .highlight .vi { color: #0053a6; }
+/* yaml mapping keys come through as Name.Tag — the ImageSetConfiguration and
+   manifest blocks are the longest code on the site, so keys read as structure
+   (ink, semibold) rather than a wall of red */
+.highlight .nt, .highlight .na { color: var(--ink); font-weight: 500; }
+.highlight .nc, .highlight .nn { color: #0053a6; }
+.highlight .o, .highlight .ow, .highlight .p { color: #4f5255; }
+.highlight .l, .highlight .ld { color: var(--ink); }
+.highlight .gp { color: #6a6e73; }
+.highlight .go { color: #4f5255; }
+.highlight .gd { color: #a30000; }
+.highlight .gi { color: #0f612c; }
+.highlight .ge { font-style: italic; }
+.highlight .gs { font-weight: 700; }
+/* rouge marks a lot of valid shell as an error — don't shout about it */
+.highlight .err { color: inherit; background: none; }
+
+/* -------------------------------------------------------------- footer -- */
+
+.footer {
+  border-top: 1px solid var(--rule);
+  background: var(--paper);
+}
+
+.footer__inner {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 2rem 1.5rem 2.5rem;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.footer p { margin: 0 0 0.4rem; }
+.footer a { color: var(--link); }
+.footer code { font-family: var(--font-mono); font-size: 0.8125rem; }
+.footer__fine { font-size: 0.8125rem; }
+
+/* ---------------------------------------------------------- responsive -- */
+
+/* three columns need the room; drop the page toc first, the rail is navigation */
+@media (max-width: 1180px) {
+  .page,
+  .page:has(.toc[hidden]) { grid-template-columns: 13.5rem minmax(0, 1fr); }
+
+  .toc { display: none; }
+}
+
+@media (max-width: 900px) {
+  .page,
+  .page:has(.toc[hidden]) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+  }
+
+  .rail {
+    position: static;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--rule);
+    columns: 2;
+    column-gap: 2rem;
+  }
+
+  .rail__head { break-after: avoid; }
+  .rail__list { break-inside: avoid; }
+}
+
+@media (max-width: 760px) {
+  body { font-size: 1rem; }
+
+  .hero__inner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2.5rem;
+    padding: 3rem 1.25rem 3.25rem;
+  }
+
+  .hero h1 { max-width: none; }
+
+  .page { padding: 2rem 1.25rem 3rem; }
+
+  .rail { columns: 1; }
+
+  .paper {
+    padding: 1.75rem 1.35rem;
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
+    margin: 0 -1.25rem;
+  }
+
+  .prose h2 { font-size: 1.3125rem; }
+  .topbar__inner { gap: 1rem; padding: 0 1.25rem; }
+  .mark__name { display: none; }
+  .topnav { gap: 1.15rem; }
+}
+
+/* ------------------------------------------------------------- printing -- */
+
+/* the docs are meant to be printed and carried into the enclave — this is a
+   supported output, not an afterthought */
+@media print {
+  .topbar, .rail, .toc, .hero__actions, .skip { display: none; }
+
+  body { background: #fff; font-size: 11pt; }
+
+  .page { display: block; padding: 0; }
+
+  .paper { border: 0; padding: 0; }
+
+  .prose { max-width: none; }
+
+  .prose pre, .prose blockquote, .prose table { break-inside: avoid; }
+
+  .prose h2, .prose h3 { break-after: avoid; }
+
+  .prose a { color: var(--ink); text-decoration: underline; }
+
+  /* a printed copy loses the link target, and these are commands you type */
+  .prose a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 9pt;
+    color: #4f5255;
+    word-break: break-all;
+  }
+}

@@ -1,3 +1,9 @@
+---
+title: "Verify"
+description: >-
+  The gate before handoff: proving the registry really serves the release payload, the operators, and the installer you are about to hand over.
+---
+
 # Verify
 
 The gate. Nothing goes to the install team until this passes.
@@ -245,5 +251,5 @@ Be honest with the install team about the limits.
 ---
 
 If everything passes, complete
-[checklists/prep-acceptance.md](../checklists/prep-acceptance.md), then go
+[checklists/prep-acceptance.md](https://github.com/bgregori/disconnected-prep/blob/main/checklists/prep-acceptance.md), then go
 to [08-handoff.md](08-handoff.md).

@@ -1,3 +1,9 @@
+---
+title: "Prerequisites"
+description: >-
+  What must exist before you start: the two hosts, disk layout, FIPS mode, credentials, DNS, and the mirroring tooling.
+---
+
 # Prerequisites
 
 What must exist before you start. Read this before provisioning the
@@ -434,7 +440,7 @@ anyone needs them. Confirm they exist and hand the answers over.
 - [ ] **Static addressing** — IPs or reservations for the nodes.
 
 Specifics belong to the install side; record what you confirmed in
-[the handoff contract](../checklists/handoff-contract.md).
+[the handoff contract](https://github.com/bgregori/disconnected-prep/blob/main/checklists/handoff-contract.md).
 
 ---
 

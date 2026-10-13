@@ -1,3 +1,9 @@
+---
+title: "Day-2 delta updates"
+description: >-
+  Adding a z-stream upgrade or a new operator to an existing disconnected environment, moving tens of gigabytes instead of hundreds.
+---
+
 # Day-2 delta updates
 
 Adding a z-stream upgrade or a new operator to an existing disconnected

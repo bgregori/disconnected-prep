@@ -1,3 +1,9 @@
+---
+title: "Mirror to disk"
+description: >-
+  Running oc-mirror v2 on the connected bastion to pull everything in the ImageSetConfiguration into tar archives.
+---
+
 # Mirror to disk
 
 On the **connected** bastion. Pulls everything in the ImageSetConfiguration

@@ -1,3 +1,9 @@
+---
+title: "Troubleshooting"
+description: >-
+  Organised by the error you are seeing, from preflight through the registry push to verification.
+---
+
 # Troubleshooting
 
 Organised by the error you are seeing. For hardening-specific failures, see

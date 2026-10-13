@@ -1,3 +1,9 @@
+---
+title: "Transfer"
+description: >-
+  Packaging, checksumming, and carrying the mirror archives across the air gap without finding out hours later that they were corrupt.
+---
+
 # Transfer
 
 Moving the archive across the airgap. Short chapter, but the step with the

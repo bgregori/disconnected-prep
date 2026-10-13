@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% unless page.name == 'index.md' %}{{ page.title }} · {% endunless %}{{ site.title }}</title>
+<meta name="description" content="{{ page.description | default: site.description | strip_newlines | strip }}">
+<meta name="color-scheme" content="light">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="{% unless page.name == 'index.md' %}{{ page.title }} · {% endunless %}{{ site.title }}">
+<meta property="og:description" content="{{ page.description | default: site.description | strip_newlines | strip }}">
+<meta property="og:url" content="{{ page.url | absolute_url }}">
+
+<link rel="canonical" href="{{ page.url | absolute_url }}">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='4' fill='%23151515'/><rect x='5' y='14' width='9' height='3' fill='%23ee0000'/><rect x='18' y='14' width='9' height='3' fill='%23ee0000'/></svg>">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;700&family=Red+Hat+Mono:wght@400;500&family=Red+Hat+Text:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
+<script src="{{ '/assets/js/docs.js' | relative_url }}" defer></script>
+</head>
+
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<header class="topbar">
+  <div class="topbar__inner">
+    <a class="mark" href="{{ '/' | relative_url }}">
+      <svg class="mark__glyph" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+        <rect width="32" height="32" rx="4" fill="#ee0000" opacity="0.12"/>
+        <rect x="5" y="14" width="9" height="3" fill="#ee0000"/>
+        <rect x="18" y="14" width="9" height="3" fill="#ee0000"/>
+      </svg>
+      <span class="mark__name">disconnected-prep</span>
+    </a>
+
+    <nav class="topnav" aria-label="Site">
+      <a href="{{ '/' | relative_url }}"{% if page.name == 'index.md' %} aria-current="page"{% endif %}>Overview</a>
+      <a href="{{ '/01-prerequisites.html' | relative_url }}">Start the workflow</a>
+      <a href="{{ '/troubleshooting.html' | relative_url }}"{% if page.name == 'troubleshooting.md' %} aria-current="page"{% endif %}>Troubleshooting</a>
+      <a class="topnav__out" href="{{ site.repo_url }}">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+{% if page.hero %}
+<div class="hero">
+  <div class="hero__inner">
+    <div class="hero__copy">
+      <h1>{{ page.hero_title | default: site.title }}</h1>
+      <p class="hero__tagline">{{ page.hero_tagline | default: site.tagline }}</p>
+      <p class="hero__actions">
+        <a class="btn btn--primary" href="#getting-started">Get started</a>
+        <a class="btn btn--ghost" href="{{ site.repo_url }}">View the repository</a>
+      </p>
+    </div>
+
+    <figure class="airgap">
+      <div class="airgap__row"><span class="airgap__host">connected bastion</span><span class="airgap__zone">internet</span></div>
+      <p class="airgap__note">plan content · mirror to disk · package</p>
+      <div class="airgap__break"><span>air gap</span><i aria-hidden="true"></i></div>
+      <div class="airgap__row"><span class="airgap__host">registry host</span><span class="airgap__zone">no route out</span></div>
+      <p class="airgap__note">install quay · push · extract installer · verify · hand off</p>
+    </figure>
+  </div>
+</div>
+{% endif %}
+
+<div class="page">
+  <nav class="rail" aria-label="Chapters">
+    {%- for group in site.nav %}
+    <p class="rail__head">{{ group.title }}</p>
+    <ul class="rail__list">
+      {%- for item in group.items %}
+      <li><a href="{{ item.url | relative_url }}"{% if page.name == item.file %} aria-current="page"{% endif %}>{{ item.title }}</a></li>
+      {%- endfor %}
+    </ul>
+    {%- endfor %}
+
+    <p class="rail__head">In the repository</p>
+    <ul class="rail__list">
+      <li><a href="{{ site.repo_blob }}/README.md">README</a></li>
+      <li><a href="{{ site.repo_blob }}/VALIDATION.md">Validation record</a></li>
+      <li><a href="{{ site.repo_blob }}/checklists/prep-acceptance.md">Acceptance checklist</a></li>
+      <li><a href="{{ site.repo_blob }}/checklists/handoff-contract.md">Handoff contract</a></li>
+    </ul>
+  </nav>
+
+  <main class="paper" id="content">
+    <article class="prose">
+      {{ content }}
+    </article>
+  </main>
+
+  <aside class="toc" id="toc" hidden>
+    <h2>On this page</h2>
+    <ol id="toc-list"></ol>
+  </aside>
+</div>
+
+<footer class="footer">
+  <div class="footer__inner">
+    <p>Preparation only — it stops before <code>install-config.yaml</code>. <a href="{{ site.repo_url }}">Source on GitHub</a>.</p>
+    <p class="footer__fine">An unofficial community project. Red Hat, OpenShift, and Red Hat Enterprise Linux are trademarks of Red Hat,&nbsp;Inc.</p>
+  </div>
+</footer>
+</body>
+</html>

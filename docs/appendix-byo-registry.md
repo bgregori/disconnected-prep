@@ -1,3 +1,9 @@
+---
+title: "Appendix: bring your own registry"
+description: >-
+  Using an existing Artifactory, Harbor, Nexus, or Quay instead of mirror-registry. Replaces chapter 5; everything else is unchanged.
+---
+
 # Appendix: bring your own registry
 
 Using an existing enterprise registry — Artifactory, Harbor, Nexus, or an
