@@ -403,8 +403,26 @@ retrying forever. The install side must:
 
 ### Windows guests need `virtio-win`
 
-Not included unless you mirror it. It is in the `virtualization` profile.
-Omit it and Windows VMs install without storage or network drivers.
+The drivers arrive with the operator: `kubevirt-hyperconverged` declares
+`virtio-win-rhel9` as a related image, so mirroring the `virtualization`
+profile brings them by digest. You do not list them separately.
+
+Do not add `container-native-virtualization/virtio-win:latest` to
+`additionalImages`. That repository exists but stops at v4.12 and rejects
+the `latest` tag:
+
+```
+unsupported: This repository does not use the "latest" tag to track the
+most recent image and must be pulled with an explicit version
+```
+
+which fails the run at the very end, after everything else has been pulled.
+Confirm the drivers are present instead:
+
+```sh
+# ===== RUN ON: CONNECTED BASTION =====
+grep virtio "${MIRROR_OUT}/working-dir/dry-run/mapping.txt"
+```
 
 ### ACS needs offline vulnerability definitions
 

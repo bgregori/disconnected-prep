@@ -200,7 +200,7 @@ Especially the easily-forgotten ones:
 for img in \
   rhel9/support-tools:latest \
   openshift4/ose-must-gather:latest \
-  container-native-virtualization/virtio-win:latest ; do
+  container-native-virtualization/virtio-win-rhel9 ; do
   echo -n "${img}: "
   oc image info --registry-config ${OCP_AIRGAP_ROOT}/binaries/mirror-pull-secret.json \
     --filter-by-os linux/amd64 "registry.airgap.local:8443/${img}" >/dev/null 2>&1 \

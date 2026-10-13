@@ -47,9 +47,22 @@
     - name: registry.redhat.io/container-native-virtualization/cnv-must-gather-rhel9:v${OCP_MINOR}
 
     # --- Windows guest drivers ---
-    # Required to install Windows VMs. Easy to forget, and impossible to add
-    # later without another trip across the airgap.
-    - name: registry.redhat.io/container-native-virtualization/virtio-win:latest
+    # NOT listed here, and deliberately so. The drivers come in with the
+    # operator: kubevirt-hyperconverged declares virtio-win-rhel9 as a
+    # related image, so it is mirrored by digest with everything else CNV
+    # needs. Listing it again is redundant.
+    #
+    # The obvious-looking reference is also wrong. There is a
+    # container-native-virtualization/virtio-win repository, but it stops at
+    # v4.12 and refuses the "latest" tag outright:
+    #
+    #   unsupported: This repository does not use the "latest" tag to track
+    #   the most recent image and must be pulled with an explicit version
+    #
+    # which fails the mirror run at the very end, after everything else has
+    # been pulled. Confirm the drivers are present after mirroring with:
+    #
+    #   grep virtio mirror-out/working-dir/dry-run/mapping.txt
 
     # --- Guest boot sources ---
     # Each rhel-guest-image is roughly 1 GB. Keep only what you will boot.
