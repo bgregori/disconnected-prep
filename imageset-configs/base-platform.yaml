@@ -51,10 +51,12 @@ archiveSize: 100
         # shows no available updates -- so the two belong together. Drop
         # both if you have decided against OSUS.
         #
-        # The package is `update-service-operator`. `cincinnati-operator` is
-        # the upstream image name and is NOT the OLM package; using it gets
+        # The package is `cincinnati-operator`. Its BUNDLES are named
+        # `update-service-operator.vX.Y.Z` -- that is the CSV name, which is
+        # what `oc get csv` prints and what a Subscription's startingCSV
+        # takes. It is NOT a package, in any catalog, and using it here gets
         # you "no related images found" with no indication why.
-        - name: update-service-operator
+        - name: cincinnati-operator
           channels:
             - name: v1
 # <<< operators

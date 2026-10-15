@@ -162,7 +162,7 @@ frequent source of silent mistakes. Verified against the v4.21 catalog:
 | Compliance | `compliance-operator` | `stable` |
 | File Integrity | `file-integrity-operator` | `stable` |
 | **OADP / backup** | **`redhat-oadp-operator`** | `stable` |
-| **Update Service (OSUS)** | **`update-service-operator`** | `v1` |
+| **Update Service (OSUS)** | **`cincinnati-operator`** | `v1` |
 | GitOps | `openshift-gitops-operator` | `latest` |
 | ACS | `rhacs-operator` | `stable` |
 
@@ -170,12 +170,15 @@ OADP is the cautionary one: the package is `redhat-oadp-operator`, but its
 bundles are named `oadp-operator.vX.Y.Z`, so `oadp-operator` looks right
 and appears in plenty of guides — including the one this repo came from.
 
-OSUS is the same shape of trap: `cincinnati-operator` is the upstream
-project and the name of the bundle image in the Red Hat catalog, but the
-OLM package is `update-service-operator`. It is in `base-platform.yaml`
-already, because `graph: true` mirrors the graph data this operator exists
-to serve — mirroring one without the other leaves the cluster still
-reporting no available updates.
+OSUS is the same shape of trap, and it catches people the same way round:
+the package is `cincinnati-operator`, but its bundles are named
+`update-service-operator.vX.Y.Z`, so `update-service-operator` looks right
+and appears in plenty of guides. `update-service-operator` is the **CSV**
+name — what `oc get csv` prints and what a Subscription's `startingCSV`
+takes — and it is not a package in any catalog. OSUS is in
+`base-platform.yaml` already, because `graph: true` mirrors the graph data
+this operator exists to serve — mirroring one without the other leaves the
+cluster still reporting no available updates.
 
 Run `./scripts/13-catalog.sh --check` rather than trusting any table,
 including this one. A wrong name is reported by oc-mirror only as
@@ -260,8 +263,9 @@ mirror:
         # Pairs with `graph: true` above: the graph data is what this
         # operator serves, and without it the cluster still reports no
         # available updates. Drop both together, not one.
-        # NOT `cincinnati-operator` -- that is the upstream image name.
-        - name: update-service-operator
+        # NOT `update-service-operator` -- that is the CSV name, not a
+        # package. The package is `cincinnati-operator`.
+        - name: cincinnati-operator
           channels:
             - name: v1
         - name: compliance-operator

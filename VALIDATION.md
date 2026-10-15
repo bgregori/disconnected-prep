@@ -30,7 +30,7 @@ Content mirrored: OpenShift **4.21.34** platform + `compliance-operator` +
 second pass adding the GitOps operator.
 
 > This run predates the `graph: true` default, so it mirrored neither the
-> graph-data image nor `update-service-operator`. Every size and timing
+> graph-data image nor `cincinnati-operator`. Every size and timing
 > figure below is therefore a floor for the current default, not a match
 > for it. The OSUS path itself has not been executed end to end here.
 
