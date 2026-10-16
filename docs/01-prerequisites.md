@@ -35,11 +35,16 @@ every other account and container on the host.
 
 > ⚠️ **STIG `$HOME` is usually the wrong choice.** The hardened builds put
 > `/home` on its own file system, sized for user files and frequently
-> quota'd, `nodev,nosuid`, or on NFS. This workflow needs roughly 55 GiB on
-> the connected bastion and 85 GiB on the registry host for a single
-> 29 GB mirror, and more for every version you retain — see
-> [10-capacity-planning.md](10-capacity-planning.md). Put `OCP_AIRGAP_ROOT` on
-> the volume you provisioned for it. `~/ocp-airgap` is fine only where
+> quota'd, `nodev,nosuid`, or on NFS. Provision **500 GB on the registry
+> host and 300–500 GB on the connected bastion**, and put `OCP_AIRGAP_ROOT`
+> on it. Those are provisioning numbers, not worst cases: a real content set
+> grows past a bare platform mirror quickly once it carries several
+> operators, a second product such as ACM or ACS, guest images, and more
+> than one retained version. Nothing here is a cache that reclaims space —
+> the registry storage and the oc-mirror cache on *each* host grow
+> monotonically until somebody deliberately prunes. Read
+> [10-capacity-planning.md](10-capacity-planning.md) before provisioning,
+> not after. `~/ocp-airgap` is fine only where
 > `/home` is part of a large root file system, which on a STIG build it
 > usually is not.
 

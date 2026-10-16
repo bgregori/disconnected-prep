@@ -81,7 +81,10 @@ cheaper to answer now than after a failed install.
 : "${OCP_AIRGAP_ROOT:?set it first -- see 01-prerequisites.md}"
 
 # --- where Quay's images will actually land -------------------------------
-# NOT --quayRoot. This is the number that matters: budget 200 GB.
+# NOT --quayRoot. This is the path that matters: the registry host needs
+# 500 GB, and the graph root is what has to be on it. See
+# 10-capacity-planning.md -- that 500 GB covers registry storage, the
+# oc-mirror cache and one import archive, all of which live on this host.
 podman info --format '{{.Store.GraphRoot}}'
 df -h "$(podman info --format '{{.Store.GraphRoot}}')"
 

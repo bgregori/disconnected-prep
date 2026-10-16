@@ -157,10 +157,12 @@ registry already exists.
 ### 1. Check the prerequisites
 
 You need two hosts — one with internet access, one that can reach the disconnected
-network — a Red Hat pull secret, and a resolvable FQDN for the registry. Budget roughly
-**55 GiB** free on the connected bastion and **85 GiB** on the registry host for a single
-29 GB mirror, and read [chapter 1](01-prerequisites.md) before provisioning either: disk
-layout and FIPS mode are the two things that are painful to change afterwards.
+network — a Red Hat pull secret, and a resolvable FQDN for the registry. Provision
+**500 GB on the registry host** and **300–500 GB on the connected bastion**; both grow
+monotonically and neither reclaims space on its own, so size for the content set you will
+end up with rather than the first mirror. Read [chapter 1](01-prerequisites.md) before
+provisioning either: disk layout and FIPS mode are the two things that are painful to
+change afterwards.
 
 ### 2. Choose where the prep tree lives
 
