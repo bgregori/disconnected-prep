@@ -113,7 +113,7 @@ printf '#!/bin/sh\nexit 0\n' > "${probe}" && chmod 0700 "${probe}"
 rm -f "${probe}"
 ```
 
-What each answer has to be: the graphroot on a volume with 200 GB free and
+What each answer has to be: the graphroot on the 500 GB volume and
 **not** on `/`; `ls -Zd` showing a `container_*` type rather than
 `default_t` or `unlabeled_t`; port 55000 free; and `exec OK` from the temp
 probe. The exec probe matters as much here as on the bastion — the push
