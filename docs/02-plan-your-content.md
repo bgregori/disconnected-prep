@@ -203,9 +203,11 @@ images for one capability.
 # ===== RUN ON: CONNECTED BASTION =====
 ./scripts/12-compose-imageset.sh                 # list available profiles
 ./scripts/12-compose-imageset.sh virtualization storage-lvms compliance-stig
+./scripts/12-compose-imageset.sh none            # base-platform.yaml only
 ```
 
-This writes `${IMAGESET_CONFIG}`, merging operators that share a catalog
+`none` gives you the platform payload, the update graph and OSUS, which is
+the base configuration on its own. This writes `${IMAGESET_CONFIG}`, merging operators that share a catalog
 into one entry and substituting your version variables.
 
 **Read the profile files, not just their names.** Several document

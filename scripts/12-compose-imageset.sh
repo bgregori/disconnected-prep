@@ -43,12 +43,17 @@ EOF
 
 Example:
   $0 virtualization storage-lvms compliance-stig
+  $0 none        # base-platform.yaml only
 
 Each profile carries notes about what it obliges the install side to do.
 Read them -- several describe behaviour that is not discoverable later.
 EOF
   exit 1
 fi
+
+# `none` composes base-platform.yaml alone: the platform payload, the update
+# graph and OSUS. No arguments still lists the profiles.
+[[ "$*" == "none" ]] && set --
 
 for p in "$@"; do
   [[ -f "${PROFILE_DIR}/${p}.yaml" ]] || die "No such profile: ${p} (run with no arguments to list)"
