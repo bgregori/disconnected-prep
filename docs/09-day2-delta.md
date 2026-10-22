@@ -116,6 +116,53 @@ range by hand in the generated config:
 Keeping the installed version in range matters: it lets the cluster compute
 an upgrade edge rather than discovering only an unreachable target.
 
+A range mirrors **every release in the channel between the two versions**,
+not just the two ends. Add `shortestPath: true` to mirror only the releases
+on the upgrade path:
+
+```yaml
+    channels:
+      - name: fast-4.22
+        type: ocp
+        minVersion: 4.21.39      # currently installed
+        maxVersion: 4.22.19      # target
+        shortestPath: true
+```
+
+Measured on that range: without `shortestPath` the dry run resolved 21
+releases (4.21.39 plus every 4.22.0 through 4.22.19), 4,039 images. With it,
+the dry run resolved two releases, 391 images, because 4.21.39 has a direct
+edge to 4.22.19. When there is no direct edge, the path includes the
+intermediate hops the cluster has to take anyway.
+
+### Upgrading to a new minor version
+
+Changing the minor version changes more than the version number. In
+`config/prep.env`:
+
+```sh
+# ===== EDIT IN: config/prep.env on the CONNECTED BASTION =====
+OCP_VERSION="4.22.19"
+OCP_CHANNEL="fast-4.22"      # the target minor's channel, which also lists the 4.21 releases that lead into it
+EXPORT_TAG="2026-10-22_upgrade-4.22.19"
+```
+
+Then recompose, and widen the range by hand as above. Three consequences:
+
+- **The operator catalog moves to the new minor.** Composing derives the
+  catalog tag from `OCP_VERSION`, so the config now names
+  `redhat-operator-index:v4.22`. The push generates a second
+  CatalogSource, `cs-redhat-operator-index-v4-22`, next to the 4.21 one.
+  The cluster keeps using the 4.21 catalog until you apply the new one.
+- **The archive is close to full size.** Releases in different minor
+  versions share few layers, so history saves little. Measured: the
+  4.21.39 → 4.22.19 delta was 32 GB, against 28 GB for the initial 4.21.39
+  mirror. About 3.7 GB of that was catalog content the first archive had
+  already carried. Plan transport for a full payload, not a z-stream delta.
+- **The installer and verification read the top of the range.**
+  `70-extract-installer.sh` and `80-verify-mirror.sh` compare `OCP_VERSION`
+  with `maxVersion` in the imported config. That is the target, 4.22.19.
+
 For a **new operator**, add the profile (or edit the generated config) and
 leave the version alone.
 
