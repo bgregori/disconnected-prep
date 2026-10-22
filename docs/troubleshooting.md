@@ -302,6 +302,27 @@ Check the tag you extracted from, and that `--command=openshift-install-fips`
 was used rather than `openshift-install`. A `fips: true` cluster requires
 the FIPS binary.
 
+### `agent create image` fails: `open .../libnmstate.so...: operation not permitted`
+
+fapolicyd. The installer runs, but the STIG policy will not let it read the
+shared libraries it unpacked into `~/.cache/agent/files_cache/`. Add the
+scoped rule from [07-verify.md](07-verify.md#extract-the-fips-installer),
+naming the path you run the installer from:
+
+```sh
+# ===== RUN ON: THE ISO-GENERATING HOST =====
+B=/path/to/openshift-install-fips
+printf '%s\n' "allow perm=open exe=${B} : ftype=application/x-sharedlib" \
+  | sudo install -m 0644 -o root -g fapolicyd /dev/stdin \
+      /etc/fapolicyd/rules.d/35-openshift-install.rules
+sudo fagenrules --load
+```
+
+Then delete `.openshift_install_state.json` from the install directory
+before retrying. The failed run left the ISO asset in that state file, and
+the next attempt reloads it and fails within a second with "cannot generate
+ISO image due to configuration errors", which tells you nothing.
+
 ---
 
 ## Long runs

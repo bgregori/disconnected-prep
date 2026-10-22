@@ -47,6 +47,28 @@ run chmod +x "${BIN}/openshift-install-fips"
 run sudo restorecon -v "${BIN}/openshift-install-fips" || true
 fapolicyd_trust "${BIN}/openshift-install-fips"
 
+# Trust lets the installer execute, not do its job. `agent create image`
+# reads shared libraries it unpacked itself -- libnmstate.so into
+# ~/.cache/agent/files_cache/, ldlinux.c32 out of the base ISO into $TMPDIR --
+# to pack them into the ISO, and the STIG policy denies opening any untrusted
+# shared library, even to read it (41-shared-obj.rules). The ISO fails with
+#   open .../files_cache/libnmstate.so.2.2.60: operation not permitted
+# This lets this one binary read shared libraries. perm=open only: loading one
+# as code needs perm=execute, which stays denied. Numbered 35 to precede
+# 41-shared-obj.rules. exe= matches by path, so a copy run from anywhere else
+# needs its own rule -- see docs/08-handoff.md.
+RULES_FILE=/etc/fapolicyd/rules.d/35-openshift-install.rules
+RULE="allow perm=open exe=${BIN}/openshift-install-fips : ftype=application/x-sharedlib"
+if command -v fagenrules >/dev/null 2>&1 && systemctl is-active --quiet fapolicyd 2>/dev/null; then
+  if [[ "$(sudo cat "${RULES_FILE}" 2>/dev/null)" == "${RULE}" ]]; then
+    info "fapolicyd: ${RULES_FILE} already in place"
+  else
+    info "fapolicyd: letting openshift-install-fips read the shared libraries it unpacks"
+    run_sh "printf '%s\n' '${RULE}' | sudo install -m 0644 -o root -g fapolicyd /dev/stdin ${RULES_FILE}"
+    run sudo fagenrules --load
+  fi
+fi
+
 echo >&2
 ok "Extracted: ${BIN}/openshift-install-fips"
 run "${BIN}/openshift-install-fips" version

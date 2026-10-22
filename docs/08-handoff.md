@@ -45,6 +45,13 @@ way that looks like an install problem but is not.
 - **What is installable** — the operator list, and by implication what is not
 - **What is not mirrored** — architectures, versions, operators deliberately excluded
 
+> ⚠️ **STIG** If the ISO-generating host runs fapolicyd, it needs the trust
+> entry and the shared-library rule from
+> [07-verify.md](07-verify.md#extract-the-fips-installer), written for the
+> path the binary actually runs from there. The rule matches by path, so
+> the one on the registry host does not cover the copy in `bin/`. The
+> bundle's `README.md` includes the commands.
+
 ---
 
 ## The three install-config requirements

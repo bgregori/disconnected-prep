@@ -50,8 +50,40 @@ sudo restorecon -v ${OCP_AIRGAP_ROOT}/binaries/openshift-install-fips
 sudo fapolicyd-cli --file add ${OCP_AIRGAP_ROOT}/binaries/openshift-install-fips
 sudo fapolicyd-cli --update
 
+# Trust lets it execute. Generating the agent ISO also needs it to READ the
+# shared libraries it unpacks, which the STIG policy denies for untrusted
+# files -- even to read. Allow that for this binary only; see below
+printf '%s\n' "allow perm=open exe=${OCP_AIRGAP_ROOT}/binaries/openshift-install-fips : ftype=application/x-sharedlib" \
+  | sudo install -m 0644 -o root -g fapolicyd /dev/stdin \
+      /etc/fapolicyd/rules.d/35-openshift-install.rules
+sudo fagenrules --load
+
 ${OCP_AIRGAP_ROOT}/binaries/openshift-install-fips version
 ```
+
+> ⚠️ **STIG Trusting the installer is not enough to build an ISO.**
+> `agent create image` unpacks `libnmstate.so` into
+> `~/.cache/agent/files_cache/` and `ldlinux.c32` out of the base ISO into
+> `$TMPDIR`, then reads them back to pack into the ISO. Both are shared
+> libraries, and the STIG policy (`41-shared-obj.rules`) refuses to open an
+> untrusted shared library, even just to read it. Without the rule above, ISO
+> generation fails with:
+>
+> ```
+> open /home/<user>/.cache/agent/files_cache/libnmstate.so.2.2.60: operation not permitted
+> ```
+>
+> The rule is narrow on purpose. It covers one binary and `perm=open` only,
+> because loading a library as code needs `perm=execute` and that stays
+> denied. It also covers shared libraries only, since every other file type
+> is readable already. It does not depend on `TMPDIR` or on the cache path,
+> so you do not need to trust the cache directory. That would also break on
+> every version bump, because the trust database records file hashes.
+> It is numbered 35 so it comes before `41-shared-obj.rules`.
+>
+> `exe=` matches by **path**. A copy run from somewhere else, such as the
+> handoff bundle's `bin/` or another host, needs its own rule naming that
+> path. See [08-handoff.md](08-handoff.md).
 
 > ⚠️ **STIG Every binary this workflow unpacks needs allowlisting.** That is
 > now four: `oc` and `oc-mirror` in chapter 01, `mirror-registry` in

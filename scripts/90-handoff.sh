@@ -216,6 +216,20 @@ additionalTrustBundle: |       # from install-config-fragment.yaml
 The registry hostname \`${REGISTRY_HOST}\` must resolve **from the cluster
 nodes**, not only from the registry host. Verify before generating the ISO.
 
+On a host running fapolicyd, \`openshift-install-fips\` must be trusted and
+allowed to read the shared libraries it unpacks, or \`agent create image\`
+fails with \`open .../libnmstate.so...: operation not permitted\`. The rule
+names the binary by path, so write it for wherever you run it from:
+
+\`\`\`sh
+B=\$(realpath bin/openshift-install-fips)
+sudo fapolicyd-cli --file add "\$B" && sudo fapolicyd-cli --update
+printf '%s\n' "allow perm=open exe=\$B : ftype=application/x-sharedlib" \\
+  | sudo install -m 0644 -o root -g fapolicyd /dev/stdin \\
+      /etc/fapolicyd/rules.d/35-openshift-install.rules
+sudo fagenrules --load
+\`\`\`
+
 Boot-disk encryption is the other install-time decision, and it is not an
 install-config.yaml field: it is a MachineConfig placed in
 <install_dir>/openshift/ before the ignition configs are generated, using

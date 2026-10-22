@@ -53,6 +53,9 @@ manifest stage, and adding it later means reprovisioning every node.
 - [ ] **`additionalTrustBundle`** pasted from the fragment, with
       `additionalTrustBundlePolicy: Always`
 - [ ] **`openshift-install-fips`** used, not the generic installer
+- [ ] **On a fapolicyd host, the installer is trusted and has its
+      shared-library rule**, naming the path it runs from
+      → *without it `agent create image` fails reading `libnmstate.so`*
 - [ ] **The host generating the ISO is itself in FIPS mode**
       (`cat /proc/sys/crypto/fips_enabled` → `1`)
       → *required by Red Hat for a `fips: true` cluster, and independent of
