@@ -240,14 +240,19 @@ servers have to exist on the node network first.
 ## After you install
 
 \`\`\`sh
-oc apply -f cluster-resources/
+cd cluster-resources
+oc apply -f idms-oc-mirror.yaml -f itms-oc-mirror.yaml \\
+  -f signature-configmap.yaml -f cs-*.yaml -f cc-*.yaml
 oc patch operatorhub cluster --type merge \\
   -p '{"spec":{"disableAllDefaultSources":true}}'
 \`\`\`
 
-Applying IDMS/ITMS triggers a rolling restart of every node as the machine
-config operator updates the CRI-O configuration. On a single-node cluster
-that is a full outage; expect the API to disappear for several minutes.
+Applying IDMS/ITMS reloads CRI-O. It does not drain or reboot the node.
+
+\`updateService.yaml\` comes last, after the OpenShift Update Service
+operator is installed and trusts the registry CA. Applying it earlier fails
+with \`no matches for kind "UpdateService"\`. For the full sequence, see
+\`docs/08-handoff.md\`, "Run the OpenShift Update Service".
 
 ## Known limits of this mirror
 

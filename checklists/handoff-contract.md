@@ -76,11 +76,18 @@ curl -I https://<registry-host>:<port>/v2/
 
 ## 4. After the install
 
-- [ ] `oc apply -f cluster-resources/`
-- [ ] `oc apply -f cluster-resources/signatures/` (if present)
+- [ ] IDMS, ITMS, `signature-configmap.yaml`, `cs-*.yaml` and `cc-*.yaml`
+      applied from `cluster-resources/`. Applying them reloads CRI-O; no
+      reboot.
 - [ ] `oc patch operatorhub cluster --type merge -p '{"spec":{"disableAllDefaultSources":true}}'`
-- [ ] Understood: **applying IDMS/ITMS reboots every node.** On a
-      single-node cluster that is a full outage.
+- [ ] OSUS, if `graph: true`, in the order given in `docs/08-handoff.md`:
+      operator installed → `registry-config` CA set in `image.config` →
+      `updateService.yaml` applied with `-n openshift-update-service` →
+      `ClusterVersion` upstream and channel set
+      → *`updateService.yaml` applied first fails with
+      `no matches for kind "UpdateService"`*
+- [ ] `oc adm upgrade` shows the in-cluster upstream, with no
+      `CannotRetrieveUpdates`
 
 ## 5. What is available
 

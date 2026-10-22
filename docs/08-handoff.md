@@ -238,32 +238,132 @@ echo "pullSecret: '$(cat /path/to/mirror-pull-secret.json)'"
 
 ## After the install completes
 
+Apply the mirror configuration and turn off the internet catalogs:
+
 ```sh
 # ===== RUN ON: THE CLUSTER (install side) =====
-oc apply -f cluster-resources/
+cd <bundle>/cluster-resources
+oc apply -f idms-oc-mirror.yaml -f itms-oc-mirror.yaml \
+  -f signature-configmap.yaml -f cs-*.yaml -f cc-*.yaml
 
 oc patch operatorhub cluster --type merge \
   -p '{"spec":{"disableAllDefaultSources":true}}'
 ```
 
-The last command disables the default catalog sources, which point at
-`registry.redhat.io` and will fail indefinitely in a disconnected
-environment, producing persistent degraded conditions.
+Turning off the default catalog sources matters because they point at
+`registry.redhat.io`. In a disconnected environment they fail forever, which
+shows up as `OperatorHubSourceError` and four marketplace pods stuck in
+`ImagePullBackOff`.
 
-`cluster-resources/` includes `updateService.yaml` when the content was
-mirrored with `graph: true`, which is the default. Applying it creates the
-OSUS instance; the cluster then resolves updates against the mirrored
-graph instead of `api.openshift.com`, and `oc adm upgrade` lists what is
-actually available locally. The OpenShift Update Service operator must be
-installed for that resource to be acted on, so it belongs in the operator
-list at mirror time — see
-[02-plan-your-content.md](02-plan-your-content.md). Without it, upgrades
-are by digest; see [09-day2-delta.md](09-day2-delta.md).
+Leave `updateService.yaml` out for now. `oc apply -f cluster-resources/`
+fails on it with `no matches for kind "UpdateService"`, because the custom
+resource definition comes from the OpenShift Update Service operator, and
+that operator is not installed yet.
 
-> **Applying IDMS/ITMS triggers a rolling restart of every node** as the
-> machine config operator rewrites the CRI-O configuration. On a
-> single-node cluster that is a full API outage of several minutes. Expect
-> it; do not interrupt it.
+> **Applying IDMS/ITMS does not restart the node.** On 4.21 the machine
+> config operator rewrites the CRI-O configuration, logs `Drain not required,
+> skipping` and runs `systemctl reload crio`. It took 13 seconds on a
+> single-node cluster, with no API outage.
+
+### Run the OpenShift Update Service
+
+These steps apply when the content was mirrored with `graph: true` (the
+default) and includes `cincinnati-operator`. Without OSUS, the cluster shows
+no available updates and you upgrade by digest. See
+[09-day2-delta.md](09-day2-delta.md).
+
+**1. Install the operator** from the mirrored catalog. `source` is the
+`metadata.name` in `cs-*.yaml`:
+
+```sh
+# ===== RUN ON: THE CLUSTER (install side) =====
+oc apply -f - <<'EOF'
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-update-service
+  annotations:
+    openshift.io/node-selector: ""
+  labels:
+    openshift.io/cluster-monitoring: "true"
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: update-service-operator-group
+  namespace: openshift-update-service
+spec:
+  targetNamespaces:
+    - openshift-update-service
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: update-service-subscription
+  namespace: openshift-update-service
+spec:
+  channel: v1
+  installPlanApproval: Automatic
+  name: cincinnati-operator
+  source: cs-redhat-operator-index-v4-21
+  sourceNamespace: openshift-marketplace
+EOF
+
+oc -n openshift-update-service get csv     # wait for PHASE Succeeded
+```
+
+**2. Let OSUS trust the registry.** It pulls the graph-data image and reads
+the release repository itself. The trust bundle in `install-config.yaml` does
+not reach it. OSUS reads the key `updateservice-registry`, and image pulls by
+the registry's `host:port` read a key written as `host..port`:
+
+```sh
+# ===== RUN ON: THE CLUSTER (install side) =====
+oc -n openshift-config create configmap registry-config \
+  --from-file=updateservice-registry=<bundle>/certs/rootCA.pem \
+  --from-file=registry.airgap.local..8443=<bundle>/certs/rootCA.pem
+
+oc patch image.config.openshift.io cluster --type merge \
+  -p '{"spec":{"additionalTrustedCA":{"name":"registry-config"}}}'
+```
+
+**3. Create the service.** The generated file has no namespace, so give it
+one:
+
+```sh
+# ===== RUN ON: THE CLUSTER (install side) =====
+oc apply -n openshift-update-service -f <bundle>/cluster-resources/updateService.yaml
+
+oc -n openshift-update-service get updateservice update-service-oc-mirror \
+  -o jsonpath='{.status.policyEngineURI}{"\n"}'     # empty until it is ready
+```
+
+`replicas: 2` in the generated file is fine on a single node. Both pods
+schedule there.
+
+**4. Point the cluster at it**, and set the channel to the one you mirrored.
+The installer sets `stable-<minor>`, so a release you took from `fast-` is
+not in the cluster's channel and no update path is found:
+
+```sh
+# ===== RUN ON: THE CLUSTER (install side) =====
+PE=$(oc -n openshift-update-service get updateservice update-service-oc-mirror \
+  -o jsonpath='{.status.policyEngineURI}')
+oc patch clusterversion version --type merge -p \
+  "{\"spec\":{\"channel\":\"<mirrored channel>\",\"upstream\":\"${PE}/api/upgrades_info/v1/graph\"}}"
+
+oc adm upgrade      # Upstream: the route above; no CannotRetrieveUpdates
+```
+
+The cluster version operator reaches that route over TLS, so it has to trust
+the ingress certificate. That holds when ingress serves a certificate signed
+by the CA in `additionalTrustBundle`. With the default self-signed ingress
+certificate it does not hold, and you must add the ingress CA to the
+`user-ca-bundle` ConfigMap in `openshift-config` first. Otherwise
+`RetrievedUpdates` reports a certificate error.
+
+`oc adm upgrade` lists only what is in the registry. Until a later mirror
+adds a newer release, "No updates available" is the correct answer.
 
 ---
 
