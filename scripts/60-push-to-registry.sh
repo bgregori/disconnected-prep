@@ -81,8 +81,11 @@ push_once() {
   docker://$(registry_ref)"
 }
 
+# Never fails: with no error file `ls` exits 2, and under pipefail the
+# caller's `errlog=$(latest_errlog)` would end the script before it reports
+# why the push failed.
 latest_errlog() {
-  ls -t "${FROM_DIR}/working-dir/logs/mirroring_errors_"*.txt 2>/dev/null | head -1
+  ls -t "${FROM_DIR}/working-dir/logs/mirroring_errors_"*.txt 2>/dev/null | head -1 || true
 }
 
 # Every error line is a 405 on a bearer-token request?

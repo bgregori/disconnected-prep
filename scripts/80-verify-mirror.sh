@@ -41,7 +41,10 @@ fi
 
 # 3 -- FIPS installer extracted and version-matched
 if [[ -x "${OCP_AIRGAP_ROOT}/binaries/openshift-install-fips" ]]; then
-  v=$("${OCP_AIRGAP_ROOT}/binaries/openshift-install-fips" version 2>/dev/null | head -1 | awk '{print $2}')
+  # awk reads every line: `head -1` exits early, the installer takes SIGPIPE
+  # writing the rest, and pipefail + set -e end the script silently (exit 141).
+  # `|| true` makes a denied or broken binary a failed check, not an abort.
+  v=$("${OCP_AIRGAP_ROOT}/binaries/openshift-install-fips" version 2>/dev/null | awk 'NR == 1 {print $2}') || true
   if [[ "${v}" == "${OCP_VERSION}" ]]; then
     _p "openshift-install-fips present and reports ${v}"
   else
