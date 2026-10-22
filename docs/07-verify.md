@@ -31,9 +31,9 @@ export IDMS=${OCP_AIRGAP_ROOT}/imports/${TAG}/working-dir/cluster-resources/idms
 
 # Read the version out of the config you mirrored, rather than retyping it --
 # a literal here that disagrees with the archive fails as "manifest unknown"
-export VER=$(awk '/minVersion:/{print $2; exit}' \
+export VER=$(awk '/maxVersion:/{print $2; exit}' \
   ${OCP_AIRGAP_ROOT}/imports/${TAG}/imageset-config.yaml)
-echo "${VER:?could not read minVersion from the ImageSetConfiguration}"
+echo "${VER:?could not read maxVersion from the ImageSetConfiguration}"
 
 oc adm release extract \
   --registry-config ${OCP_AIRGAP_ROOT}/binaries/mirror-pull-secret.json \
@@ -160,7 +160,7 @@ REG=registry.airgap.local:8443
 TAG=2026-10-02_initial
 CR=${OCP_AIRGAP_ROOT}/imports/${TAG}/working-dir/cluster-resources
 AUTH=${OCP_AIRGAP_ROOT}/binaries/mirror-pull-secret.json
-VER=$(awk '/minVersion:/{print $2; exit}' ${OCP_AIRGAP_ROOT}/imports/${TAG}/imageset-config.yaml)
+VER=$(awk '/maxVersion:/{print $2; exit}' ${OCP_AIRGAP_ROOT}/imports/${TAG}/imageset-config.yaml)
 
 # 1 -- registry API over TLS, no -k. 401 is the pass.
 curl -sI "https://${REG}/v2/" | head -1

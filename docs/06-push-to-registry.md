@@ -215,7 +215,7 @@ Missing step 1 is the single most common disconnected-install failure.
 ```sh
 # ===== RUN ON: REGISTRY HOST =====
 TAG=2026-10-02_initial
-VER=$(awk '/minVersion:/{print $2; exit}' \
+VER=$(awk '/maxVersion:/{print $2; exit}' \
   ${OCP_AIRGAP_ROOT}/imports/${TAG}/imageset-config.yaml)
 
 oc adm release info \

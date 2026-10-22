@@ -195,7 +195,10 @@ check_version_matches_import() {
   local cfg="${IMPORTS_DIR:-}/${EXPORT_TAG:-}/imageset-config.yaml"
   [[ -f "${cfg}" ]] || return 0
   local mirrored
-  mirrored=$(awk '/minVersion:/{print $2; exit}' "${cfg}" 2>/dev/null)
+  # maxVersion, not minVersion: a Day-2 upgrade config spans a range that
+  # starts at the installed version (docs/09-day2-delta.md), and the target is
+  # the top of it. A pinned config has min == max, so this reads the same.
+  mirrored=$(awk '/maxVersion:/{print $2; exit}' "${cfg}" 2>/dev/null)
   [[ -n "${mirrored}" ]] || return 0
   if [[ "${mirrored}" != "${OCP_VERSION}" ]]; then
     die "OCP_VERSION=${OCP_VERSION}, but ${cfg} mirrored ${mirrored}.
