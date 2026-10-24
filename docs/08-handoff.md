@@ -273,10 +273,14 @@ no available updates and you upgrade by digest. See
 [09-day2-delta.md](09-day2-delta.md).
 
 **1. Install the operator** from the mirrored catalog. `source` is the
-`metadata.name` in `cs-*.yaml`:
+`metadata.name` in `cs-*.yaml`. Wait for that catalog to be serving before
+you subscribe:
 
 ```sh
 # ===== RUN ON: THE CLUSTER (install side) =====
+oc -n openshift-marketplace get catalogsource cs-redhat-operator-index-v4-21 \
+  -o jsonpath='{.status.connectionState.lastObservedState}{"\n"}'   # READY
+
 oc apply -f - <<'EOF'
 apiVersion: v1
 kind: Namespace
@@ -310,6 +314,19 @@ spec:
 EOF
 
 oc -n openshift-update-service get csv     # wait for PHASE Succeeded
+```
+
+Subscribing before the catalog is `READY` can leave the operator stuck with
+no CSV at all. The Subscription shows `ResolutionFailed` with
+`connection refused`, and the catalog operator's log repeats
+`failed to unpack bundles: jobs.batch "<hash>" already exists`. To recover,
+delete that job and the ConfigMap with the same name in
+`openshift-marketplace`, and OLM unpacks the bundle again:
+
+```sh
+# ===== RUN ON: THE CLUSTER (install side) =====
+oc -n openshift-marketplace delete job <hash>
+oc -n openshift-marketplace delete configmap <hash>
 ```
 
 **2. Let OSUS trust the registry.** It pulls the graph-data image and reads
@@ -349,10 +366,27 @@ not in the cluster's channel and no update path is found:
 # ===== RUN ON: THE CLUSTER (install side) =====
 PE=$(oc -n openshift-update-service get updateservice update-service-oc-mirror \
   -o jsonpath='{.status.policyEngineURI}')
+echo "${PE:?not ready yet -- wait for step 3}"
 oc patch clusterversion version --type merge -p \
   "{\"spec\":{\"channel\":\"<mirrored channel>\",\"upstream\":\"${PE}/api/upgrades_info/v1/graph\"}}"
 
 oc adm upgrade      # Upstream: the route above; no CannotRetrieveUpdates
+```
+
+The `echo` stops the block when the URI is still empty. Without it, the
+patch sets the upstream to a bare `/api/upgrades_info/v1/graph`, and
+`RetrievedUpdates` fails with `unsupported protocol scheme ""`.
+
+Expect a few minutes of `503 Service Unavailable` straight after this. The
+OSUS pods have to finish building the graph, and the cluster version
+operator polls only every few minutes, so it can go on reporting the 503
+after the route already answers. Check the route directly if you want to
+know which:
+
+```sh
+# ===== RUN ON: THE CLUSTER (install side) =====
+curl -s --cacert <bundle>/certs/rootCA.pem -o /dev/null -w '%{http_code}\n' \
+  "${PE}/api/upgrades_info/v1/graph?channel=<mirrored channel>"      # 200 when ready
 ```
 
 The cluster version operator reaches that route over TLS, so it has to trust

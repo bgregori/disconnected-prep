@@ -356,22 +356,48 @@ oc image info --registry-config binaries/mirror-pull-secret.json \
 
 Steps 1–7 above are online: mirroring, transfer and push all run beside a
 live cluster, which keeps serving from the registry throughout and sees
-nothing new until the manifests below are applied. The reboots are the only
-part that disrupts anything.
+nothing new until the manifests below are applied. Only the upgrade itself
+disrupts anything.
 
-For completeness, what the install side does with a delta:
+What the install side does with a delta. Apply the same files as after the
+install, from the **new** bundle, giving the update service its namespace:
 
 ```sh
 # ===== RUN ON: THE CLUSTER (install side) =====
-oc apply -f cluster-resources/
-
-# for an upgrade
-oc adm upgrade --to=4.21.36
+cd <new bundle>/cluster-resources
+oc apply -f idms-oc-mirror.yaml -f itms-oc-mirror.yaml \
+  -f signature-configmap.yaml -f cs-*.yaml -f cc-*.yaml
+oc apply -n openshift-update-service -f updateService.yaml
 ```
 
+`oc apply -f cluster-resources/` on its own does not work here.
+`updateService.yaml` has no namespace, so it lands in whatever namespace
+your session is using, not next to the running service.
+
+The signature ConfigMap has the same name in every bundle, so applying it
+replaces the previous one. It carries signatures only for the releases in
+this delta's config. That is fine for upgrading forward, but keep the older
+bundle if you might need to go back.
+
 Each delta refreshes the graph-data image, so OSUS learns about the new
-release once `cluster-resources/` is applied. Give it a minute, then
-`oc adm upgrade` should list 4.21.36 as available before you ask for it.
+release once `updateService.yaml` is applied. Give it a minute, then check
+the cluster sees the target before you ask for it:
+
+```sh
+# ===== RUN ON: THE CLUSTER (install side) =====
+# z-stream: the channel already contains the target
+oc adm upgrade                          # lists 4.21.36
+oc adm upgrade --to=4.21.36
+
+# new minor: move to the target minor's channel first
+oc adm upgrade channel fast-4.22
+oc adm upgrade                          # lists 4.22.19
+oc adm upgrade --to=4.22.19
+```
+
+For a new minor, the cluster's current channel (`fast-4.21`) has no edge
+into 4.22, so OSUS offers nothing until the channel changes. Use the same
+channel the delta was mirrored from.
 
 > **Mirrored with `graph: false`?** Then there is no OSUS and no
 > recommended updates, so `--to` has nothing to select from. Name the
@@ -387,8 +413,8 @@ release once `cluster-resources/` is applied. Give it a minute, then
 >
 > [Updating a cluster in a disconnected environment](https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html/disconnected_environments/updating-a-cluster-in-a-disconnected-environment)
 
-Applying IDMS/ITMS reboots nodes. On a single-node cluster, so does the
-upgrade. Both are outages; schedule accordingly.
+Applying IDMS/ITMS reloads CRI-O without a reboot. The upgrade reboots every
+node, so on a single-node cluster it is an outage. Schedule it.
 
 ---
 
