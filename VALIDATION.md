@@ -32,7 +32,8 @@ second pass adding the GitOps operator.
 > This run predates the `graph: true` default, so it mirrored neither the
 > graph-data image nor `cincinnati-operator`. Every size and timing
 > figure below is therefore a floor for the current default, not a match
-> for it. The OSUS path itself has not been executed end to end here.
+> for it. The OSUS path was first exercised end to end in the
+> [third pass](#third-pass-install-and-osus-upgrade-2026-10-26).
 
 ## Verified
 
@@ -223,6 +224,77 @@ the auth file's reversibility, the API's refusal of basic auth, and
 two-robot least-privilege layout were not. No cluster has been installed
 from any of these mirrors.
 
+## Third pass: install and OSUS upgrade, 2026-10-26
+
+The first run to go past the handoff. It mirrored 4.21.39, installed a
+single-node cluster from the handoff bundle, set up OSUS, then mirrored
+4.22.19 and upgraded the cluster through OSUS. The repo stayed at commit
+`e7ff5c9` from start to finish, and no script or doc was changed during
+the run. Two earlier attempts on 2026-10-22 and 2026-10-23 each needed
+fixes partway through. Those fixes are the commits leading up to
+`e7ff5c9`, and neither attempt counts as a validation.
+
+The sandbox had the same hardened shape as before (RHEL 9.6, FIPS, STIG,
+SELinux enforcing, fapolicyd active on both hosts), plus a KVM host running
+the cluster node as a VM, booted over Redfish virtual media. Neither
+release was in a `stable-` channel yet, so the run used `fast-4.21` and
+`fast-4.22`.
+
+| Step | Result |
+|---|---|
+| `12-compose-imageset none` | base only: platform, `graph: true`, `cincinnati-operator` |
+| `15-dry-run` | 199 images |
+| `20-mirror-to-disk` | **192/192, 4/4, 3/3 — 26m57s**, 29 GB |
+| `40` → `90` on the registry host | registry with the environment's own CA; **push 199/199 in 30m**, no 405s; **verify 7/7** |
+| `70-extract-installer` | wrote the fapolicyd shared-library rule; the agent ISO then built with no manual fapolicyd change |
+| SNO install from the bundle | `fips: true`, `imageDigestSources` and the trust bundle taken from `install-config-fragment.yaml`; **install complete** |
+| 08 post-install and OSUS | catalog `READY` → operator `Succeeded` first time → `UpdateService` → `RetrievedUpdates=True` |
+| Delta, per 09 (`shortestPath`) | **2 releases, 391 images**; DIFFERENTIAL, 29 GB, 26m33s |
+| Delta push → verify → handoff | **384/384, 4/4, 3/3 in 27m30s; verify 7/7**, version checks read `maxVersion` |
+| 09 cluster side | channel `fast-4.22` → OSUS offered **4.22.19** → `oc adm upgrade --to` |
+| Upgrade | **4.22.19 in 57 minutes**, `verified=true`; 34/34 operators on 4.22.19 |
+
+`verified=true` means the cluster checked the 4.22.19 release signature
+offline, against the `mirrored-release-signatures` ConfigMap from the delta
+bundle. A missing or wrong signature would have stopped the upgrade there.
+
+### Measured, on a 500 GB `/data`
+
+| Where | Size |
+|---|---|
+| connected cache | 47 GB |
+| connected `mirror-out` | 36 GB |
+| connected exports (initial + delta) | 30 GB + 29 GB |
+| registry imports (initial + delta) | 33 GB + 36 GB |
+| registry cache | 47 GB |
+| podman graphroot (both releases + OSUS) | 49 GB |
+| **registry host total** | **171 GB of /data** |
+
+Two releases from different minor versions almost doubled every figure
+from the 2026-10-09 pass. Minor releases share few layers, and the delta
+archive (29 GB) was nearly as big as the initial one.
+
+### What this pass proved that the earlier ones could not
+
+- **The handoff bundle installs a cluster.** `imageDigestSources`,
+  `additionalTrustBundle` and `pull-secret.json` came straight from the
+  bundle, and the agent ISO pulled everything from the mirror.
+- **OSUS works offline from a `graph: true` mirror,** using the steps 08
+  documents. With the release images and the graph-data image on the local
+  registry, the cluster was offered 4.22.19 and upgraded by version, with
+  no `--to-image` and no `--allow-explicit-upgrade`.
+- **IDMS/ITMS changes reload CRI-O without rebooting the node.**
+- **The cross-minor delta mirrors exactly the upgrade path** when the range
+  starts at the installed version and sets `shortestPath: true`, as 09
+  describes.
+
+### Not covered
+
+The install-side steps (`install-config.yaml`, `agent-config.yaml`, booting
+the node) come from the sandbox repository, not this one. Credential
+rotation and the two-robot layout in 05 are still unexercised. The
+`init` password was left as generated.
+
 ## Bugs this testing found and fixed
 
 Twenty-one. Every one passed local syntax and logic review and still failed
@@ -367,10 +439,9 @@ delta retry.
 
 Be explicit about the gaps.
 
-- **A real cluster install from this mirror.** Out of scope for this repo;
-  the handoff bundle has not been consumed by an installer. In particular
-  the generated `imageDigestSources` is correct against the IDMS but has
-  not been proven by booting an agent ISO.
+- **Topologies other than single-node.** The third pass installed and
+  upgraded one SNO cluster from the handoff bundle. Compact and multi-node
+  installs have not been run from these mirrors.
 - **`appendix-byo-registry.md`** — Artifactory/Harbor/Nexus paths are
   reasoned from documented behaviour, not executed.
 - **Profiles are name/channel-validated** against the live v4.21 catalog
